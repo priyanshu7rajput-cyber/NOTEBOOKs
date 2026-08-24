@@ -255,6 +255,17 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [user, isDemoMode]);
 
+  const handleDeleteBook = async (bookId: string) => {
+    setBooks((prev) => prev.filter((b) => b.id !== bookId));
+    if (!isDemoMode && user) {
+      await supabase
+        .from('books')
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq('id', bookId)
+        .eq('user_id', user.id);
+    }
+  };
+
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     // Optimistic UI update
     setPendingTasks((prev) =>
@@ -419,7 +430,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {books.slice(0, 3).map((book) => (
-            <BookCard key={book.id} book={book} />
+            <BookCard key={book.id} book={book} onDelete={handleDeleteBook} />
           ))}
         </div>
       </div>

@@ -133,7 +133,7 @@ export const BookCard: React.FC<BookCardProps> = ({
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
           <Link
             href={`/books/${book.id}`}
-            className="font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+            className="font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1.5"
           >
             <BookOpen className="w-3.5 h-3.5" />
             Open Notebook
@@ -141,11 +141,19 @@ export const BookCard: React.FC<BookCardProps> = ({
 
           {onDelete && (
             <button
-              onClick={() => onDelete(book.id)}
-              className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-1"
-              title="Move to Trash"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm(`Are you sure you want to delete "${book.title}"?`)) {
+                  onDelete(book.id);
+                }
+              }}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors text-xs font-medium cursor-pointer"
+              title="Delete Notebook"
             >
               <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
             </button>
           )}
         </div>

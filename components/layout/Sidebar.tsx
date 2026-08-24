@@ -120,13 +120,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewBookClick }) => {
           );
         })}
       </div>
-
-      {/* Footer Info */}
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800 text-center">
-        <div className="text-[11px] text-slate-400 dark:text-slate-500">
-          Supabase RLS Protected • v1.0
-        </div>
-      </div>
     </aside>
   );
 };

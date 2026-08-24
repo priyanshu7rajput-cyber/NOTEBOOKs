@@ -55,6 +55,17 @@ export default function FavoritesPage() {
     loadFavorites();
   }, [user, isDemoMode]);
 
+  const handleDeleteBook = async (bookId: string) => {
+    setFavoriteBooks((prev) => prev.filter((b) => b.id !== bookId));
+    if (!isDemoMode && user) {
+      await supabase
+        .from('books')
+        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+        .eq('id', bookId)
+        .eq('user_id', user.id);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       <div className="flex items-center gap-2">
@@ -76,7 +87,7 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {favoriteBooks.map((book) => (
-            <BookCard key={book.id} book={book} />
+            <BookCard key={book.id} book={book} onDelete={handleDeleteBook} />
           ))}
         </div>
       )}
