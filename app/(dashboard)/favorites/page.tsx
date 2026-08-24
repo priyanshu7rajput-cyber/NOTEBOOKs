@@ -19,7 +19,7 @@ export default function FavoritesPage() {
           {
             id: 'demo-b1',
             user_id: 'demo-user-12345',
-            title: 'MCA 3rd Semester',
+            title: 'Computer Science Notes',
             purpose: 'Study and Assignments',
             description: 'Computer graphics, algorithms, and semester projects',
             category: 'Study',

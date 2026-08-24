@@ -76,7 +76,7 @@ export const CreateBookDialog: React.FC<CreateBookDialogProps> = ({
         {/* Book Title */}
         <Input
           label="Book Name *"
-          placeholder="e.g. MCA 3rd Semester, React Deep Dive, Daily Journal"
+          placeholder="e.g. Computer Science, Project Notes, Daily Journal"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           error={error}

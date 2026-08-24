@@ -59,7 +59,7 @@ function TasksContent() {
           completed_at: null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          book_title: 'MCA 3rd Semester',
+          book_title: 'Computer Science Notes',
           page_number: 12,
         },
         {
@@ -97,7 +97,7 @@ function TasksContent() {
           completed_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          book_title: 'MCA 3rd Semester',
+          book_title: 'Computer Science Notes',
           page_number: 5,
         },
       ];
@@ -107,7 +107,7 @@ function TasksContent() {
         {
           id: 'demo-b1',
           user_id: 'demo-user-12345',
-          title: 'MCA 3rd Semester',
+          title: 'Computer Science Notes',
           purpose: 'Study',
           description: '',
           category: 'Education',

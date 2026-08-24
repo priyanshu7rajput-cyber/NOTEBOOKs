@@ -38,7 +38,7 @@ export default function DashboardPage() {
     {
       id: 'demo-b1',
       user_id: 'demo-user-12345',
-      title: 'MCA 3rd Semester',
+      title: 'Computer Science Notes',
       purpose: 'Study and Assignments',
       description: 'Computer graphics, algorithms, and semester projects',
       category: 'Education',
@@ -120,7 +120,7 @@ export default function DashboardPage() {
       completed_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      book_title: 'MCA 3rd Semester',
+      book_title: 'Computer Science Notes',
       page_number: 12,
     },
     {
@@ -158,7 +158,7 @@ export default function DashboardPage() {
       completed_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      book_title: 'MCA 3rd Semester',
+      book_title: 'Computer Science Notes',
       page_number: 5,
     },
   ];
