@@ -2,6 +2,11 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Hide Next.js Dev Indicator Floating Button */
+nextjs-portal, [data-nextjs-toast], [data-nextjs-indicator] {
+  display: none !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
