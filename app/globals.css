@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
+
+    /* Always pure white paper with blue/slate ruled lines and pink margins */
+    --notebook-paper: #ffffff;
+    --notebook-line-height: 44px;
+    --notebook-rule-color: #64748b;
+    --notebook-margin-color: #fb7185;
+    --notebook-ink: #000000;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 6.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 6.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    --notebook-paper: #ffffff;
+    --notebook-line-height: 44px;
+    --notebook-rule-color: #64748b;
+    --notebook-margin-color: #fb7185;
+    --notebook-ink: #000000;
+  }
+}
+
+/* Exact Notebook ruled background lines */
+.exact-notebook-paper {
+  background-color: #ffffff !important;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent calc(var(--notebook-line-height) - 1.5px),
+    var(--notebook-rule-color) calc(var(--notebook-line-height) - 1.5px),
+    var(--notebook-rule-color) var(--notebook-line-height)
+  );
+  background-size: 100% var(--notebook-line-height);
+  background-position: 0 0;
+}
+
+/* Double horizontal top header pink line */
+.exact-top-margin {
+  background-color: #ffffff !important;
+  border-bottom: 2px solid var(--notebook-margin-color);
+  box-shadow: 0 3px 0 var(--notebook-margin-color);
+}
+
+/* Exact pink vertical margin line */
+.exact-margin-line {
+  border-right: 2px solid var(--notebook-margin-color);
+}
+
+/* Left-to-Right strict typography & Ruled Line Alignment with deep black default ink */
+.tiptap-notebook-editor {
+  line-height: var(--notebook-line-height) !important;
+  color: #000000;
+  font-size: 1.55rem;
+  letter-spacing: 0.03em;
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate !important;
+}
+
+.tiptap-notebook-editor p {
+  line-height: var(--notebook-line-height) !important;
+  min-height: var(--notebook-line-height) !important;
+  max-height: var(--notebook-line-height) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block;
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate !important;
+  color: inherit;
+}
+
+.tiptap-notebook-editor span {
+  line-height: var(--notebook-line-height) !important;
+}
+
+.tiptap-notebook-editor h1,
+.tiptap-notebook-editor h2,
+.tiptap-notebook-editor h3 {
+  line-height: var(--notebook-line-height) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Checklists inside notebook - Clean checkbox with green tick */
+ul[data-type="taskList"] {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+ul[data-type="taskList"] li {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  line-height: var(--notebook-line-height) !important;
+  height: var(--notebook-line-height) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+ul[data-type="taskList"] li > label {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  user-select: none !important;
+  margin: 0 !important;
+}
+
+/* Custom Green Checkbox */
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #64748b !important;
+  border-radius: 4px !important;
+  outline: none !important;
+  cursor: pointer !important;
+  background-color: #ffffff !important;
+  display: grid !important;
+  place-content: center !important;
+  transition: all 0.15s ease !important;
+  margin: 0 !important;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background-color: #16a34a !important; /* Green */
+  border-color: #16a34a !important;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:checked::before {
+  content: "" !important;
+  width: 6px !important;
+  height: 10px !important;
+  border: solid white !important;
+  border-width: 0 2.5px 2.5px 0 !important;
+  transform: rotate(45deg) translate(-1px, -1px) !important;
+}
+
+/* Strike-through when checked */
+ul[data-type="taskList"] li[data-checked="true"] > div {
+  text-decoration: line-through !important;
+  opacity: 0.65 !important;
+}
