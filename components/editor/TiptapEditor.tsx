@@ -37,7 +37,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
       initialContent,
       onChange,
       isChecklistModeAlways = false,
-      maxLinesPerPage = 18,
+      maxLinesPerPage = 25,
       onPageLimitReached,
     },
     ref
@@ -63,7 +63,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
               }
             });
 
-            // Only flip to next page when page lines genuinely reach or exceed 18 lines
+            // Only flip to next page when page lines genuinely reach page full capacity
             if (actualLinesCount >= maxLinesPerPage) {
               if (onPageLimitReachedRef.current) {
                 onPageLimitReachedRef.current();
@@ -128,7 +128,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
         attributes: {
           class:
             'tiptap-notebook-editor focus:outline-none w-full text-slate-900',
-          style: `font-family: var(--font-kalam); color: #000000; min-height: ${maxLinesPerPage * 44}px; max-height: ${maxLinesPerPage * 44}px; overflow: hidden;`,
+          style: `font-family: var(--font-kalam); color: #000000; min-height: ${maxLinesPerPage * 44}px;`,
         },
       },
       onUpdate: ({ editor }) => {

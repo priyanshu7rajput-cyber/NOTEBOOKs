@@ -330,66 +330,74 @@ export default function DashboardPage() {
 
       {/* 4 Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:border-violet-300 dark:hover:border-violet-800 transition-all">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Your Notebooks</span>
-            <BookMarked className="w-5 h-5 text-blue-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Your Notebooks</span>
+            <div className="w-8 h-8 rounded-xl bg-violet-50 dark:bg-violet-950/60 flex items-center justify-center text-violet-600 dark:text-violet-400">
+              <BookMarked className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
+          <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
             {stats.totalBooks}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Active digital copies</span>
+          <span className="text-[11px] font-medium text-slate-400 mt-1 block">Active digital copies</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-800 transition-all">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Pages</span>
-            <BookOpen className="w-5 h-5 text-indigo-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Pages</span>
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <BookOpen className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white mt-2">
+          <div className="text-3xl font-extrabold text-slate-900 dark:text-white mt-3">
             {stats.totalPages}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Ruled & handwritten pages</span>
+          <span className="text-[11px] font-medium text-slate-400 mt-1 block">Ruled & handwritten pages</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:border-pink-300 dark:hover:border-pink-800 transition-all">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Pending Tasks</span>
-            <Clock className="w-5 h-5 text-amber-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Tasks</span>
+            <div className="w-8 h-8 rounded-xl bg-pink-50 dark:bg-pink-950/60 flex items-center justify-center text-pink-600 dark:text-pink-400">
+              <Clock className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-2">
+          <div className="text-3xl font-extrabold text-pink-600 dark:text-pink-400 mt-3">
             {stats.pendingTasks}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Action items remaining</span>
+          <span className="text-[11px] font-medium text-slate-400 mt-1 block">Action items remaining</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:border-purple-300 dark:hover:border-purple-800 transition-all">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Completed Tasks</span>
-            <CheckSquare className="w-5 h-5 text-emerald-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Completed Tasks</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <CheckSquare className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
+          <div className="text-3xl font-extrabold text-violet-600 dark:text-violet-400 mt-3">
             {stats.completedTasks}
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Successfully finished</span>
+          <span className="text-[11px] font-medium text-slate-400 mt-1 block">Successfully finished</span>
         </div>
       </div>
 
-      {/* Continue Where You Left Off Hero Widget */}
+      {/* Continue Where You Left Off Hero Widget - Sunset Violet to Magenta Neon Gradient */}
       {userState && userState.last_opened_book_id && (
-        <div className="bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 skew-x-12 pointer-events-none" />
+        <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 rounded-3xl p-7 text-white shadow-xl shadow-purple-500/15 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/10 skew-x-12 pointer-events-none" />
 
           <div className="space-y-1.5 z-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-xs rounded-full text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider text-white">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Continue Where You Left Off</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-bold drop-shadow-xs">
+            <h3 className="text-xl sm:text-2xl font-black drop-shadow-xs">
               {books.find((b) => b.id === userState.last_opened_book_id)?.title ||
                 'Recent Notebook'}
             </h3>
-            <p className="text-xs sm:text-sm text-blue-100">
+            <p className="text-xs sm:text-sm text-purple-100">
               Pick up right from your last edited page with cursor and checklist position saved.
             </p>
           </div>
@@ -401,7 +409,7 @@ export default function DashboardPage() {
             <Button
               variant="secondary"
               size="lg"
-              className="bg-white text-blue-700 hover:bg-blue-50 font-bold shadow-lg"
+              className="bg-white text-violet-900 hover:bg-violet-50 font-bold shadow-lg border-0"
             >
               Continue Writing
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -421,7 +429,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/books"
-            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
           >
             <span>View all notebooks</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -446,7 +454,7 @@ export default function DashboardPage() {
           </div>
           <Link
             href="/tasks"
-            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            className="text-xs font-bold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
           >
             <span>Open Task Manager</span>
             <ArrowRight className="w-3.5 h-3.5" />

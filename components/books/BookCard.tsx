@@ -123,7 +123,7 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
           <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <div
-              className="h-full bg-linear-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -133,7 +133,7 @@ export const BookCard: React.FC<BookCardProps> = ({
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
           <Link
             href={`/books/${book.id}`}
-            className="font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1.5"
+            className="font-bold text-violet-600 dark:text-violet-400 hover:underline inline-flex items-center gap-1.5"
           >
             <BookOpen className="w-3.5 h-3.5" />
             Open Notebook

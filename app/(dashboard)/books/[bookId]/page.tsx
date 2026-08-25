@@ -43,7 +43,7 @@ export default function BookEditorPage({ params }: BookEditorPageProps) {
   const supabase = createClient();
   const currentPage = pages.find((p) => p.id === currentPageId) || pages[0];
 
-  const MAX_LINES_PER_PAGE = 18;
+  const MAX_LINES_PER_PAGE = 25;
 
   useEffect(() => {
     const loadNotebook = async () => {
@@ -224,7 +224,7 @@ export default function BookEditorPage({ params }: BookEditorPageProps) {
       } else {
         setTimeout(() => setSaveStatus('saved'), 300);
       }
-    }, 600);
+    }, 10000); // 10 seconds debounce: waits until user stops typing for 10s
   };
 
   const handleTitleChange = (newTitle: string) => {

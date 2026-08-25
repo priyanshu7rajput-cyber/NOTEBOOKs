@@ -36,10 +36,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <button
           onClick={() => onToggle(task.id, !task.completed)}
           className={cn(
-            'w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-all cursor-pointer shrink-0',
+            'w-5 h-5 mt-0.5 rounded-lg border flex items-center justify-center transition-all cursor-pointer shrink-0',
             task.completed
-              ? 'bg-emerald-600 border-emerald-600 text-white'
-              : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 bg-white dark:bg-slate-800'
+              ? 'bg-[#6366f1] border-[#6366f1] text-white shadow-xs'
+              : 'border-slate-300 dark:border-slate-600 hover:border-violet-500 bg-white dark:bg-slate-800'
           )}
         >
           {task.completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
@@ -49,7 +49,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         <div className="flex-1 min-w-0">
           <p
             className={cn(
-              'text-sm font-medium text-slate-900 dark:text-slate-100 transition-all leading-snug break-words',
+              'text-sm font-semibold text-slate-800 dark:text-slate-100 transition-all leading-snug break-words',
               task.completed && 'line-through text-slate-400 dark:text-slate-500'
             )}
           >
@@ -67,7 +67,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             {/* Priority Badge */}
             <span
               className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border',
+                'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-bold border',
                 priorityStyle.bg
               )}
             >
@@ -77,7 +77,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
 
             {/* Due Date */}
             {task.due_date && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 <Calendar className="w-3 h-3 text-slate-400" />
                 {formatDate(task.due_date)}
               </span>
@@ -87,7 +87,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
             {showLocation && task.book_id && task.page_id && onNavigate && (
               <button
                 onClick={() => onNavigate(task.book_id!, task.page_id!, task.id)}
-                className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] text-violet-600 dark:text-violet-400 hover:underline font-semibold cursor-pointer"
               >
                 <span>
                   {task.book_title || 'Book'} • Page {task.page_number || 1}

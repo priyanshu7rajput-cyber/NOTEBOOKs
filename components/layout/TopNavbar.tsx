@@ -24,13 +24,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onSearchOpen }) => {
       <div className="flex items-center gap-4 flex-1 max-w-md">
         <button
           onClick={onSearchOpen}
-          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all text-xs cursor-pointer shadow-xs"
+          className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:border-violet-300 dark:hover:border-violet-700/60 transition-all text-xs cursor-pointer shadow-2xs"
         >
           <div className="flex items-center gap-2.5">
             <Search className="w-4 h-4 text-slate-400" />
             <span>Search notebooks, pages, tasks, or tags...</span>
           </div>
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-500">
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-500 shadow-2xs">
             Ctrl+K
           </kbd>
         </button>
@@ -38,6 +38,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onSearchOpen }) => {
 
       {/* Right tools: Demo banner, Theme toggle, User Profile & Logout */}
       <div className="flex items-center gap-3">
+        {/* Modern Pro Badge */}
+        <div className="px-3 py-1 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-pink-500 text-white font-bold text-xs shadow-sm shadow-indigo-500/20">
+          Pro
+        </div>
+
         {isDemoMode && (
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium">
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -51,7 +56,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onSearchOpen }) => {
           size="icon"
           onClick={toggleTheme}
           title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="text-slate-600 dark:text-slate-400"
+          className="text-slate-600 dark:text-slate-400 rounded-xl"
         >
           {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </Button>
@@ -59,11 +64,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onSearchOpen }) => {
         {/* User profile dropdown / logout */}
         <div className="flex items-center gap-3 pl-2 border-l border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-600 via-indigo-600 to-pink-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
               {profile?.name ? profile.name.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
             </div>
             <div className="hidden lg:block text-left">
-              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-tight">
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
                 {profile?.name || user?.email || 'User'}
               </p>
               <p className="text-[10px] text-slate-400 dark:text-slate-500">

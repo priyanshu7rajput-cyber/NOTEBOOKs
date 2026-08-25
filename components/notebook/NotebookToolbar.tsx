@@ -75,7 +75,7 @@ export const NotebookToolbar: React.FC<NotebookToolbarProps> = ({
   ];
 
   return (
-    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3 sticky top-4 z-30">
+    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-lg flex flex-wrap items-center justify-between gap-3">
       {/* Primary Mode: Type vs Draw */}
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
         <button
