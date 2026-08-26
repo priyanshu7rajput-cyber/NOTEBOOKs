@@ -190,6 +190,62 @@ export async function parsePreviousDayExcel(file: File): Promise<Map<string, { d
 }
 
 /**
+ * Parses Previous Day data directly from Google Sheets rows & headers
+ */
+export function parsePreviousDayFromGoogleSheet(
+  headers: string[],
+  rows: string[][]
+): Map<string, { displayName: string; closing: number }> {
+  if (!rows || rows.length === 0) {
+    throw new Error('Google Spreadsheet contains no data rows.');
+  }
+
+  // Find Name column index
+  let nameColIdx = headers.findIndex((h) => {
+    const l = h.toLowerCase();
+    return l === 'name' || l === 'developer' || l === 'person' || l.includes('name');
+  });
+  if (nameColIdx === -1) nameColIdx = 0;
+
+  // Find Closing column index (or last column)
+  let closingColIdx = headers.findIndex((h) => {
+    const l = h.toLowerCase();
+    return l.includes('clos') || l.includes('pend') || l.includes('bal');
+  });
+  if (closingColIdx === -1) {
+    // Default to last column
+    closingColIdx = headers.length - 1;
+  }
+
+  const previousData = new Map<string, { displayName: string; closing: number }>();
+
+  for (const row of rows) {
+    const rawName = String(row[nameColIdx] || '').trim();
+    if (!rawName) continue;
+
+    if (rawName.toLowerCase() === 'total' || rawName.toLowerCase() === 'grand total') {
+      continue;
+    }
+
+    const norm = normalizeTaskName(rawName);
+    if (!norm) continue;
+
+    let closingVal = 0;
+    if (closingColIdx >= 0 && row[closingColIdx] !== undefined) {
+      const parsed = Number(row[closingColIdx]);
+      closingVal = isNaN(parsed) ? 0 : parsed;
+    }
+
+    previousData.set(norm, {
+      displayName: rawName,
+      closing: closingVal,
+    });
+  }
+
+  return previousData;
+}
+
+/**
  * Parses Task Names or Developer/Assignee Names from Excel (New Tasks or Solved Tasks)
  * If developer/assignee/person column exists, extracts that for person-wise grouping.
  * Also extracts task names.
@@ -428,16 +484,30 @@ export function calculateDailyTaskReport(
 }
 
 /**
- * Generates and downloads formatted Excel file (.xlsx) matching the exact visual structure:
- * Row 1: Blank
- * Row 2: Date centered above headers (e.g. DD/MM/YYYY)
- * Row 3: Blank
- * Row 4: Header [Name, Opening, New, Solved, Closing]
- * Row 5..N: Data rows
- * Last Row: Total row
+ * Generates and downloads formatted Excel file (.xlsx) with exact styling:
+ * - Row 2: Date centered across columns with clean font
+ * - Row 4: Dark Grey Header (#595959 / #666666) with bold text
+ * - Data Rows: Arial/Calibri 11pt, clean cell borders, right-aligned numbers, left-aligned names
+ * - Total Row: Dark Grey Background (#595959 / #666666), bold text & numbers
  */
-export function exportDailyReportToExcel(rows: TaskReportRow[], dateStr = new Date().toISOString().split('T')[0]) {
-  // Format date to DD/M/YYYY or DD/MM/YYYY like in reference image "25/8/2026"
+export async function exportDailyReportToExcel(rows: TaskReportRow[], dateStr = new Date().toISOString().split('T')[0]) {
+  // Dynamic import of ExcelJS
+  const ExcelJS = (await import('exceljs')).default;
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Sheet1', {
+    views: [{ showGridLines: true }],
+  });
+
+  // Set column widths
+  worksheet.columns = [
+    { key: 'name', width: 22 },
+    { key: 'opening', width: 14 },
+    { key: 'new', width: 14 },
+    { key: 'solved', width: 14 },
+    { key: 'closing', width: 14 },
+  ];
+
+  // Format date: e.g. "26/8/2026"
   let formattedDate = dateStr;
   try {
     const parts = dateStr.split('-');
@@ -448,56 +518,113 @@ export function exportDailyReportToExcel(rows: TaskReportRow[], dateStr = new Da
     formattedDate = dateStr;
   }
 
+  // Row 1: Blank
+  worksheet.addRow([]);
+
+  // Row 2: Date centered above table in Column C (or merged A2:E2)
+  const dateRow = worksheet.addRow(['', '', formattedDate, '', '']);
+  dateRow.height = 22;
+  const dateCell = dateRow.getCell(3);
+  dateCell.font = { name: 'Arial', size: 12, bold: false, color: { argb: 'FF000000' } };
+  dateCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  // Row 3: Blank
+  worksheet.addRow([]);
+
+  // Row 4: Header
+  const headerRow = worksheet.addRow(['Name', 'Opening', 'New', 'Solved', 'Closing']);
+  headerRow.height = 26;
+
+  const headerFill: any = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF666666' }, // Dark charcoal/grey matching screenshot
+  };
+
+  const headerFont = {
+    name: 'Arial',
+    size: 11,
+    bold: false,
+    color: { argb: 'FFFFFFFF' }, // White/light text on grey background
+  };
+
+  const thinBorder: any = {
+    top: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+    left: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+    bottom: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+    right: { style: 'thin', color: { argb: 'FFD3D3D3' } },
+  };
+
+  headerRow.eachCell((cell, colNumber) => {
+    cell.fill = headerFill;
+    cell.font = headerFont;
+    cell.alignment = {
+      horizontal: colNumber === 1 ? 'center' : 'center',
+      vertical: 'middle',
+    };
+    cell.border = thinBorder;
+  });
+
   // Calculate totals
   const totalOpening = rows.reduce((acc, r) => acc + r.opening, 0);
   const totalNew = rows.reduce((acc, r) => acc + r.newCount, 0);
   const totalSolved = rows.reduce((acc, r) => acc + r.solvedCount, 0);
   const totalClosing = rows.reduce((acc, r) => acc + r.closing, 0);
 
-  // 2D Array layout matching exact reference
-  const aoo: (string | number)[][] = [
-    [], // Row 1: blank
-    ['', '', formattedDate, '', ''], // Row 2: Date placed in column C
-    [], // Row 3: blank
-    ['Name', 'Opening', 'New', 'Solved', 'Closing'], // Row 4: Header
-  ];
-
   // Data rows
   rows.forEach((r) => {
-    aoo.push([
+    const dataRow = worksheet.addRow([
       r.name,
       r.opening > 0 ? r.opening : '',
       r.newCount > 0 ? r.newCount : '',
       r.solvedCount > 0 ? r.solvedCount : '',
       r.closing,
     ]);
+    dataRow.height = 20;
+
+    dataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.font = { name: 'Arial', size: 11, color: { argb: 'FF000000' } };
+      cell.alignment = {
+        horizontal: colNumber === 1 ? 'left' : 'center',
+        vertical: 'middle',
+      };
+      cell.border = thinBorder;
+    });
   });
 
   // Total row
-  aoo.push([
+  const totalRow = worksheet.addRow([
     'Total',
     totalOpening,
     totalNew,
     totalSolved,
     totalClosing,
   ]);
+  totalRow.height = 24;
 
-  const worksheet = XLSX.utils.aoa_to_sheet(aoo);
+  totalRow.eachCell((cell, colNumber) => {
+    cell.fill = headerFill;
+    cell.font = { name: 'Arial', size: 11, bold: false, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = {
+      horizontal: colNumber === 1 ? 'center' : 'center',
+      vertical: 'middle',
+    };
+    cell.border = thinBorder;
+  });
 
-  // Column widths matching reference screenshot
-  worksheet['!cols'] = [
-    { wch: 18 }, // A: Name
-    { wch: 14 }, // B: Opening
-    { wch: 14 }, // C: New
-    { wch: 14 }, // D: Solved
-    { wch: 14 }, // E: Closing
-  ];
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-
-  const filename = `Daily_Task_Report_${dateStr}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+  // Write and trigger browser download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `Daily_Task_Report_${dateStr}.xlsx`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  window.URL.revokeObjectURL(url);
 }
 
 /**

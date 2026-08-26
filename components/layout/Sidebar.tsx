@@ -13,6 +13,7 @@ import {
   Plus,
   BookMarked,
   FileSpreadsheet,
+  Table2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -40,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewBookClick }) => {
       ],
     },
     { name: 'Daily Task Report', href: '/daily-report', icon: FileSpreadsheet },
+    { name: 'Google Sheets', href: '/google-sheets', icon: Table2 },
     { name: 'Favorites', href: '/favorites', icon: Star },
     { name: 'Trash', href: '/trash', icon: Trash2 },
     { name: 'Settings', href: '/settings', icon: Settings },

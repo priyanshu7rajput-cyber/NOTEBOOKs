@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileSpreadsheet,
   UploadCloud,
@@ -17,10 +17,15 @@ import {
   TrendingUp,
   AlertTriangle,
   FileText,
+  Table2,
+  Link2,
+  Send,
+  CloudUpload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   parsePreviousDayExcel,
+  parsePreviousDayFromGoogleSheet,
   parseTaskNamesFromExcel,
   calculateDailyTaskReport,
   exportDailyReportToExcel,
@@ -30,6 +35,14 @@ import {
 } from '@/lib/reports/dailyReport';
 
 export default function DailyTaskReportPage() {
+  // Source mode for previous data: 'upload' or 'spreadsheet'
+  const [previousSourceMode, setPreviousSourceMode] = useState<'upload' | 'spreadsheet'>('spreadsheet');
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>('');
+  const [spreadsheetTabs, setSpreadsheetTabs] = useState<string[]>([]);
+  const [selectedSheetTab, setSelectedSheetTab] = useState<string>('Sheet1');
+  const [connectedSpreadsheetId, setConnectedSpreadsheetId] = useState<string | null>(null);
+  const [isConnectingSheet, setIsConnectingSheet] = useState<boolean>(false);
+
   // File states
   const [previousFile, setPreviousFile] = useState<File | null>(null);
   const [newTasksFile, setNewTasksFile] = useState<File | null>(null);
@@ -43,6 +56,7 @@ export default function DailyTaskReportPage() {
 
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSavingToSheet, setIsSavingToSheet] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -54,21 +68,98 @@ export default function DailyTaskReportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
 
+  // Fetch initial google connection on load
+  useEffect(() => {
+    async function checkExistingGoogleSheet() {
+      try {
+        const res = await fetch('/api/google/status');
+        const data = await res.json();
+        if (data.connected && data.connection?.last_spreadsheet_id) {
+          setConnectedSpreadsheetId(data.connection.last_spreadsheet_id);
+          setSpreadsheetUrl(`https://docs.google.com/spreadsheets/d/${data.connection.last_spreadsheet_id}/edit`);
+          if (data.connection.last_sheet_name) {
+            setSelectedSheetTab(data.connection.last_sheet_name);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    checkExistingGoogleSheet();
+  }, []);
+
+  const handleConnectSpreadsheet = async () => {
+    if (!spreadsheetUrl.trim()) {
+      setErrorMessage('Please enter a Google Spreadsheet URL');
+      return;
+    }
+    setIsConnectingSheet(true);
+    setErrorMessage(null);
+    try {
+      const res = await fetch('/api/google/sheets/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: spreadsheetUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to connect spreadsheet');
+      }
+      setConnectedSpreadsheetId(data.spreadsheetId);
+      setSpreadsheetTabs(data.sheets.map((s: any) => s.title));
+      setSelectedSheetTab(data.defaultSheet);
+      setSuccessMessage(`Connected to Google Spreadsheet: "${data.title}"`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to connect spreadsheet';
+      setErrorMessage(msg);
+    } finally {
+      setIsConnectingSheet(false);
+    }
+  };
+
   const handleProcessReport = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!previousFile && !newTasksFile && !solvedTasksFile) {
-      setErrorMessage('Please upload at least one file (Previous Excel, New Tasks Excel, or Solved Tasks Excel).');
+    const hasPrevious = previousSourceMode === 'upload' ? Boolean(previousFile) : Boolean(connectedSpreadsheetId || spreadsheetUrl);
+
+    if (!hasPrevious && !newTasksFile && !solvedTasksFile) {
+      setErrorMessage('Please provide previous data (Excel or Google Sheet) or today\'s Task files.');
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // 1. Parse Previous Day Excel (if provided)
+      // 1. Parse Previous Day Data
       let prevData = new Map<string, { displayName: string; closing: number }>();
-      if (previousFile) {
+      
+      if (previousSourceMode === 'spreadsheet' && (connectedSpreadsheetId || spreadsheetUrl)) {
+        // First connect if not connected
+        let sId = connectedSpreadsheetId;
+        if (!sId) {
+          const connectRes = await fetch('/api/google/sheets/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: spreadsheetUrl.trim() }),
+          });
+          const connectData = await connectRes.json();
+          if (!connectRes.ok || connectData.error) {
+            throw new Error(connectData.error || 'Failed to connect spreadsheet');
+          }
+          sId = connectData.spreadsheetId;
+          setConnectedSpreadsheetId(connectData.spreadsheetId);
+        }
+
+        // Fetch sheet rows
+        const sheetRes = await fetch(`/api/google/sheets/${sId}?sheet=${encodeURIComponent(selectedSheetTab)}`);
+        const sheetData = await sheetRes.json();
+        if (!sheetRes.ok || sheetData.error) {
+          throw new Error(sheetData.error || 'Failed to read Google Spreadsheet');
+        }
+
+        prevData = parsePreviousDayFromGoogleSheet(sheetData.headers, sheetData.rows);
+      } else if (previousSourceMode === 'upload' && previousFile) {
         try {
           prevData = await parsePreviousDayExcel(previousFile);
         } catch (err: unknown) {
@@ -106,7 +197,7 @@ export default function DailyTaskReportPage() {
       setSummary(result.summary);
       setNewTasksList(newResult.names);
       setSolvedTasksList(solvedResult.names);
-      setSuccessMessage(`Successfully processed ${result.rows.length} unique records!`);
+      setSuccessMessage(`Successfully calculated report for ${result.rows.length} records!`);
     } catch (err: unknown) {
       console.error(err);
       const msg = err instanceof Error ? err.message : 'An unexpected error occurred while processing files.';
@@ -116,9 +207,106 @@ export default function DailyTaskReportPage() {
     }
   };
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
     if (!reportRows || reportRows.length === 0) return;
-    exportDailyReportToExcel(reportRows, selectedDate);
+    await exportDailyReportToExcel(reportRows, selectedDate);
+  };
+
+  // Directly save generated report rows to connected Google Sheet
+  const handleSaveToGoogleSheet = async () => {
+    if (!reportRows || reportRows.length === 0) return;
+    
+    let sId = connectedSpreadsheetId;
+    if (!sId) {
+      if (!spreadsheetUrl.trim()) {
+        setErrorMessage('Please enter Google Spreadsheet URL first.');
+        return;
+      }
+      try {
+        const connectRes = await fetch('/api/google/sheets/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: spreadsheetUrl.trim() }),
+        });
+        const connectData = await connectRes.json();
+        if (!connectRes.ok || connectData.error) {
+          throw new Error(connectData.error || 'Failed to connect spreadsheet');
+        }
+        sId = connectData.spreadsheetId;
+        setConnectedSpreadsheetId(connectData.spreadsheetId);
+      } catch (e: any) {
+        setErrorMessage(e.message);
+        return;
+      }
+    }
+
+    setIsSavingToSheet(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      // Format date into standard DD/M/YYYY or DD/MM/YYYY text format e.g. "27/8/2026"
+      let formattedDateText = selectedDate;
+      try {
+        const parts = selectedDate.split('-');
+        if (parts.length === 3) {
+          formattedDateText = `'${parseInt(parts[2], 10)}/${parseInt(parts[1], 10)}/${parts[0]}`;
+        }
+      } catch {
+        formattedDateText = `'${selectedDate}`;
+      }
+
+      // Filter out any row with name "Name" or empty
+      const validReportRows = reportRows.filter(
+        (r) => r.name && r.name.toLowerCase() !== 'name' && r.name.toLowerCase() !== 'total'
+      );
+
+      const totalOpening = validReportRows.reduce((acc, r) => acc + r.opening, 0);
+      const totalNew = validReportRows.reduce((acc, r) => acc + r.newCount, 0);
+      const totalSolved = validReportRows.reduce((acc, r) => acc + r.solvedCount, 0);
+      const totalClosing = validReportRows.reduce((acc, r) => acc + r.closing, 0);
+
+      const rowsToAppend: (string | number)[][] = [
+        [], // Row 1: blank
+        ['', '', formattedDateText, '', ''], // Row 2: Date placed in column C as plain text
+        [], // Row 3: blank
+        ['Name', 'Opening', 'New', 'Solved', 'Closing'], // Row 4: Headers
+      ];
+
+      validReportRows.forEach((r) => {
+        rowsToAppend.push([
+          r.name,
+          r.opening > 0 ? r.opening : '',
+          r.newCount > 0 ? r.newCount : '',
+          r.solvedCount > 0 ? r.solvedCount : '',
+          r.closing,
+        ]);
+      });
+
+      rowsToAppend.push(['Total', totalOpening, totalNew, totalSolved, totalClosing]);
+
+      const res = await fetch(`/api/google/sheets/${sId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sheetName: selectedSheetTab || 'Sheet1',
+          rows: rowsToAppend,
+          mode: 'overwrite',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to save to Google Sheet');
+      }
+
+      setSuccessMessage('Report successfully added directly to Google Spreadsheet!');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save to Google Sheet';
+      setErrorMessage(msg);
+    } finally {
+      setIsSavingToSheet(false);
+    }
   };
 
   const handleCopyMessage = async () => {
@@ -165,7 +353,7 @@ export default function DailyTaskReportPage() {
                 Daily Task Report
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Automated reconciliation: Opening + New - Solved = Closing
+                Connect Google Sheets or upload files to calculate daily developer task counts
               </p>
             </div>
           </div>
@@ -205,61 +393,121 @@ export default function DailyTaskReportPage() {
         </div>
       )}
 
-      {/* Section 1: Upload Files & Verification Input */}
+      {/* Section 1: Previous Day Input (Google Sheet or Upload) & Task Files */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <UploadCloud className="w-5 h-5 text-indigo-500" />
-            <span>1. Upload Files</span>
+            <span>1. Select Data Sources</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Upload your previous day Closing Excel and today&apos;s New/Solved Task Excels (.xlsx, .xls, .csv)
+            Choose Google Sheet link or upload Excel files to read Opening and calculate today&apos;s report
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Previous Day Excel */}
+          {/* Card 1: Previous Day (Toggle: Google Sheet or File Upload) */}
           <div
-            className={`border-2 border-dashed rounded-2xl p-5 transition-all flex flex-col justify-between ${
-              previousFile
+            className={`border-2 rounded-2xl p-5 transition-all flex flex-col justify-between ${
+              connectedSpreadsheetId || previousFile
                 ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20'
-                : 'border-slate-200 dark:border-slate-800 hover:border-violet-400 bg-slate-50/50 dark:bg-slate-800/30'
+                : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30'
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Previous Day Excel
+                  Previous Day Opening
                 </span>
-                {previousFile && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                {(connectedSpreadsheetId || previousFile) && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                )}
               </div>
-              <p className="text-[11px] text-slate-400 mb-4">
-                Reads <strong>Closing</strong> as today&apos;s <strong>Opening</strong>
-              </p>
+
+              {/* Mode switch buttons */}
+              <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                <button
+                  type="button"
+                  onClick={() => setPreviousSourceMode('spreadsheet')}
+                  className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    previousSourceMode === 'spreadsheet'
+                      ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Table2 className="w-3.5 h-3.5" />
+                  Google Sheet
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviousSourceMode('upload')}
+                  className={`flex-1 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    previousSourceMode === 'upload'
+                      ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  Upload Excel
+                </button>
+              </div>
             </div>
 
             <div>
-              <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer transition-all shadow-2xs">
-                <FileText className="w-4 h-4 text-violet-500" />
-                <span className="truncate max-w-[170px]">
-                  {previousFile ? previousFile.name : 'Upload Previous Excel'}
-                </span>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setPreviousFile(e.target.files[0]);
-                  }}
-                  className="hidden"
-                />
-              </label>
-              {previousFile && (
-                <button
-                  onClick={() => setPreviousFile(null)}
-                  className="text-[10px] text-rose-500 hover:underline mt-1.5 block mx-auto text-center"
-                >
-                  Remove file
-                </button>
+              {previousSourceMode === 'spreadsheet' ? (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Link2 className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <input
+                      type="text"
+                      value={spreadsheetUrl}
+                      onChange={(e) => setSpreadsheetUrl(e.target.value)}
+                      placeholder="Paste Google Sheet URL..."
+                      className="w-full h-8 pl-8 pr-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleConnectSpreadsheet}
+                      disabled={isConnectingSheet}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7 font-bold gap-1"
+                    >
+                      {isConnectingSheet ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                      <span>{connectedSpreadsheetId ? 'Re-Connect' : 'Connect Sheet'}</span>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer transition-all shadow-2xs">
+                    <FileText className="w-4 h-4 text-violet-500" />
+                    <span className="truncate max-w-[170px]">
+                      {previousFile ? previousFile.name : 'Upload Previous Excel'}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls, .csv"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setPreviousFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {previousFile && (
+                    <button
+                      onClick={() => setPreviousFile(null)}
+                      className="text-[10px] text-rose-500 hover:underline mt-1.5 block mx-auto text-center"
+                    >
+                      Remove file
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -493,8 +741,28 @@ export default function DailyTaskReportPage() {
                 </div>
 
                 <Button
+                  onClick={handleSaveToGoogleSheet}
+                  disabled={isSavingToSheet}
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs"
+                  size="sm"
+                >
+                  {isSavingToSheet ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudUpload className="w-4 h-4" />
+                      <span>Save to Google Sheet</span>
+                    </>
+                  )}
+                </Button>
+
+                <Button
                   onClick={handleDownloadExcel}
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  variant="outline"
+                  className="gap-2 font-bold"
                   size="sm"
                 >
                   <Download className="w-4 h-4" />
