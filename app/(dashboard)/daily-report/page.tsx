@@ -68,24 +68,25 @@ export default function DailyTaskReportPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasCopied, setHasCopied] = useState(false);
 
-  // Fetch initial google connection on load
+  // Load saved spreadsheet URL from localStorage on mount
   useEffect(() => {
-    async function checkExistingGoogleSheet() {
-      try {
-        const res = await fetch('/api/google/status');
-        const data = await res.json();
-        if (data.connected && data.connection?.last_spreadsheet_id) {
-          setConnectedSpreadsheetId(data.connection.last_spreadsheet_id);
-          setSpreadsheetUrl(`https://docs.google.com/spreadsheets/d/${data.connection.last_spreadsheet_id}/edit`);
-          if (data.connection.last_sheet_name) {
-            setSelectedSheetTab(data.connection.last_sheet_name);
-          }
-        }
-      } catch (err) {
-        console.error(err);
+    try {
+      const savedUrl = localStorage.getItem('daily_report_spreadsheet_url');
+      const savedId = localStorage.getItem('daily_report_spreadsheet_id');
+      const savedTab = localStorage.getItem('daily_report_spreadsheet_tab');
+
+      if (savedUrl) {
+        setSpreadsheetUrl(savedUrl);
       }
+      if (savedId) {
+        setConnectedSpreadsheetId(savedId);
+      }
+      if (savedTab) {
+        setSelectedSheetTab(savedTab);
+      }
+    } catch {
+      // Ignore localStorage errors in SSR
     }
-    checkExistingGoogleSheet();
   }, []);
 
   const handleConnectSpreadsheet = async () => {
@@ -108,7 +109,17 @@ export default function DailyTaskReportPage() {
       setConnectedSpreadsheetId(data.spreadsheetId);
       setSpreadsheetTabs(data.sheets.map((s: any) => s.title));
       setSelectedSheetTab(data.defaultSheet);
-      setSuccessMessage(`Connected to Google Spreadsheet: "${data.title}"`);
+
+      // Save permanently to localStorage
+      try {
+        localStorage.setItem('daily_report_spreadsheet_url', spreadsheetUrl.trim());
+        localStorage.setItem('daily_report_spreadsheet_id', data.spreadsheetId);
+        localStorage.setItem('daily_report_spreadsheet_tab', data.defaultSheet);
+      } catch (e) {
+        console.error(e);
+      }
+
+      setSuccessMessage(`Connected & Saved Google Spreadsheet: "${data.title}"`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to connect spreadsheet';
       setErrorMessage(msg);
@@ -456,32 +467,58 @@ export default function DailyTaskReportPage() {
             <div>
               {previousSourceMode === 'spreadsheet' ? (
                 <div className="space-y-2">
-                  <div className="relative">
-                    <Link2 className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                    <input
-                      type="text"
-                      value={spreadsheetUrl}
-                      onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                      placeholder="Paste Google Sheet URL..."
-                      className="w-full h-8 pl-8 pr-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleConnectSpreadsheet}
-                      disabled={isConnectingSheet}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7 font-bold gap-1"
-                    >
-                      {isConnectingSheet ? (
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Check className="w-3 h-3" />
-                      )}
-                      <span>{connectedSpreadsheetId ? 'Re-Connect' : 'Connect Sheet'}</span>
-                    </Button>
-                  </div>
+                  {connectedSpreadsheetId ? (
+                    <div className="space-y-2">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Table2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 truncate font-mono">
+                            {spreadsheetUrl.substring(0, 32)}...
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setConnectedSpreadsheetId(null)}
+                          className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline shrink-0 ml-2"
+                        >
+                          Change
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        <span>Auto-saved. Opening reads directly from this sheet.</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <Link2 className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                        <input
+                          type="text"
+                          value={spreadsheetUrl}
+                          onChange={(e) => setSpreadsheetUrl(e.target.value)}
+                          placeholder="Paste Google Sheet URL..."
+                          className="w-full h-8 pl-8 pr-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleConnectSpreadsheet}
+                          disabled={isConnectingSheet}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7 font-bold gap-1"
+                        >
+                          {isConnectingSheet ? (
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Check className="w-3 h-3" />
+                          )}
+                          <span>Save & Connect Sheet</span>
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div>
