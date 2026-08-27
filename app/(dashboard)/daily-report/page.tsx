@@ -22,7 +22,11 @@ import {
   Send,
   CloudUpload,
   SquareKanban,
+  MessageCircle,
+  Camera,
+  Share2,
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/Button';
 import {
   parsePreviousDayExcel,
@@ -66,6 +70,7 @@ export default function DailyTaskReportPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSavingToSheet, setIsSavingToSheet] = useState(false);
   const [isFetchingJira, setIsFetchingJira] = useState(false);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -359,6 +364,192 @@ export default function DailyTaskReportPage() {
       setTimeout(() => setHasCopied(false), 2500);
     } catch (e) {
       console.error('Failed to copy to clipboard', e);
+    }
+  };
+
+  // 1-Click WhatsApp Share: Captures screenshot of table & opens WhatsApp with Spreadsheet Link + Today's Report
+  const handleShareToWhatsApp = async () => {
+    if (!summary) return;
+    setIsSharingWhatsApp(true);
+    setErrorMessage(null);
+
+    try {
+      // 1. Generate crisp high-resolution screenshot directly using 2D Canvas API (100% reliable, zero Tailwind lab() crashes)
+      const validRows = (reportRows || []).filter(
+        (r) => r.name && r.name.toLowerCase() !== 'name' && r.name.toLowerCase() !== 'total'
+      );
+
+      const rowHeight = 30;
+      const headerHeight = 36;
+      const dateHeaderHeight = 32;
+      const totalRowsCount = validRows.length + 1; // +1 for Total row
+      const canvasWidth = 560;
+      const canvasHeight = dateHeaderHeight + headerHeight + (totalRowsCount * rowHeight) + 10;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasWidth * 2; // 2x retina
+      canvas.height = canvasHeight * 2;
+      const ctx = canvas.getContext('2d');
+
+      if (ctx) {
+        ctx.scale(2, 2);
+
+        // White card background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        // Date Top Header
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(10, 10, canvasWidth - 20, dateHeaderHeight);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, 10, canvasWidth - 20, dateHeaderHeight);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 13px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const formattedDate = selectedDate.split('-').reverse().join('/');
+        ctx.fillText(formattedDate, canvasWidth / 2, 10 + dateHeaderHeight / 2);
+
+        // Table Header (Dark Grey)
+        const tableStartY = 10 + dateHeaderHeight;
+        const colWidths = [180, 90, 90, 90, 90];
+        const colStarts = [10, 190, 280, 370, 460];
+        const headers = ['Name', 'Opening', 'New', 'Solved', 'Closing'];
+
+        ctx.fillStyle = '#666666';
+        ctx.fillRect(10, tableStartY, canvasWidth - 20, headerHeight);
+
+        ctx.font = 'bold 12px Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        headers.forEach((h, i) => {
+          if (i === 0) {
+            ctx.textAlign = 'left';
+            ctx.fillText(h, colStarts[i] + 10, tableStartY + headerHeight / 2);
+          } else {
+            ctx.textAlign = 'center';
+            ctx.fillText(h, colStarts[i] + colWidths[i] / 2, tableStartY + headerHeight / 2);
+          }
+        });
+
+        // Draw Row items
+        let currentY = tableStartY + headerHeight;
+        ctx.font = '12px Arial, sans-serif';
+
+        validRows.forEach((r, idx) => {
+          // Row background
+          ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+          ctx.fillRect(10, currentY, canvasWidth - 20, rowHeight);
+
+          // Grid lines
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.strokeRect(10, currentY, canvasWidth - 20, rowHeight);
+
+          // Cell texts
+          ctx.fillStyle = '#0f172a';
+          ctx.textAlign = 'left';
+          ctx.fillText(r.name, colStarts[0] + 10, currentY + rowHeight / 2);
+
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#334155';
+          ctx.fillText(r.opening > 0 ? String(r.opening) : '', colStarts[1] + colWidths[1] / 2, currentY + rowHeight / 2);
+
+          ctx.fillStyle = '#4f46e5';
+          ctx.fillText(r.newCount > 0 ? String(r.newCount) : '', colStarts[2] + colWidths[2] / 2, currentY + rowHeight / 2);
+
+          ctx.fillStyle = '#059669';
+          ctx.fillText(r.solvedCount > 0 ? String(r.solvedCount) : '', colStarts[3] + colWidths[3] / 2, currentY + rowHeight / 2);
+
+          ctx.fillStyle = '#e11d48';
+          ctx.font = 'bold 12px Arial, sans-serif';
+          ctx.fillText(String(r.closing), colStarts[4] + colWidths[4] / 2, currentY + rowHeight / 2);
+          ctx.font = '12px Arial, sans-serif';
+
+          currentY += rowHeight;
+        });
+
+        // Total Row (Dark Grey)
+        ctx.fillStyle = '#666666';
+        ctx.fillRect(10, currentY, canvasWidth - 20, headerHeight);
+
+        ctx.font = 'bold 12px Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText('Total', colStarts[0] + colWidths[0] / 2, currentY + headerHeight / 2);
+        ctx.fillText(String(summary.totalOpening), colStarts[1] + colWidths[1] / 2, currentY + headerHeight / 2);
+        ctx.fillText(String(summary.newToday), colStarts[2] + colWidths[2] / 2, currentY + headerHeight / 2);
+        ctx.fillText(String(summary.solvedToday), colStarts[3] + colWidths[3] / 2, currentY + headerHeight / 2);
+        ctx.fillText(String(summary.totalPending), colStarts[4] + colWidths[4] / 2, currentY + headerHeight / 2);
+
+        // Convert to Blob & download / copy
+        const imageBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+        const currentSheetUrl = spreadsheetUrl.trim() || (connectedSpreadsheetId ? `https://docs.google.com/spreadsheets/d/${connectedSpreadsheetId}/edit` : '');
+        const reportText = generateDailyReportMessage(summary, verifiedCount, newTasksList, solvedTasksList);
+
+        if (imageBlob) {
+          const imageFile = new File([imageBlob], `Daily_Task_Report_${selectedDate}.png`, { type: 'image/png' });
+
+          // If browser supports Web Share API with files (Mobile Chrome/Safari/Edge)
+          if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+            try {
+              await navigator.share({
+                files: [imageFile],
+                title: 'Daily Task Report',
+                text: currentSheetUrl,
+              });
+
+              // Copy today's report text so user can immediately paste it as second message
+              await navigator.clipboard.writeText(reportText);
+              setSuccessMessage('Image & Sheet URL shared! Today\'s tasks text copied to clipboard for 2nd message.');
+              return;
+            } catch (shareErr) {
+              // Fallback to desktop clipboard & direct open
+            }
+          }
+
+          // Desktop Flow: Copy Image to Clipboard
+          try {
+            if (navigator.clipboard && (window as any).ClipboardItem) {
+              const item = new (window as any).ClipboardItem({ 'image/png': imageBlob });
+              await navigator.clipboard.write([item]);
+            }
+          } catch {
+            // Ignore clipboard fallback
+          }
+
+          // Trigger image download
+          const imageURL = URL.createObjectURL(imageBlob);
+          const link = document.createElement('a');
+          link.href = imageURL;
+          link.download = `Daily_Task_Report_${selectedDate}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(imageURL);
+        }
+      }
+
+      // 2. Prepare WhatsApp URL message (Spreadsheet Link as first message, Text in clipboard)
+      const currentSheetUrl = spreadsheetUrl.trim() || (connectedSpreadsheetId ? `https://docs.google.com/spreadsheets/d/${connectedSpreadsheetId}/edit` : '');
+      const reportText = generateDailyReportMessage(summary, verifiedCount, newTasksList, solvedTasksList);
+
+      // Copy text report to clipboard so user can paste it right after sending the image/URL
+      try {
+        await navigator.clipboard.writeText(reportText);
+      } catch (e) {}
+
+      // Open WhatsApp with Spreadsheet URL
+      const encodedMsg = encodeURIComponent(currentSheetUrl);
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMsg}`;
+      window.open(whatsappUrl, '_blank');
+
+      setSuccessMessage('1. Image copied/downloaded (paste in WhatsApp with Sheet URL)\n2. Today\'s report text copied to clipboard!');
+    } catch (err: any) {
+      console.error('WhatsApp share error:', err);
+      setErrorMessage(err.message || 'Failed to capture screenshot for WhatsApp');
+    } finally {
+      setIsSharingWhatsApp(false);
     }
   };
 
@@ -929,6 +1120,25 @@ export default function DailyTaskReportPage() {
                 </Button>
 
                 <Button
+                  onClick={handleShareToWhatsApp}
+                  disabled={isSharingWhatsApp}
+                  className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20"
+                  size="sm"
+                >
+                  {isSharingWhatsApp ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Capturing & Sharing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4 fill-current" />
+                      <span>Share on WhatsApp</span>
+                    </>
+                  )}
+                </Button>
+
+                <Button
                   onClick={handleDownloadExcel}
                   variant="outline"
                   className="gap-2 font-bold"
@@ -940,77 +1150,56 @@ export default function DailyTaskReportPage() {
               </div>
             </div>
 
-            {/* Responsive Table */}
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-              <table className="w-full text-left text-xs border-collapse">
+            {/* Dedicated Clean Screenshot Target for WhatsApp (Matches Exact Spreadsheet Format) */}
+            <div id="report-screenshot-target" className="p-4 bg-white rounded-xl text-slate-900 border border-slate-200">
+              <div className="text-center font-bold text-sm py-1.5 bg-slate-100 border border-slate-300 rounded-t-lg mb-0 text-slate-800">
+                {selectedDate.split('-').reverse().join('/')}
+              </div>
+              <table className="w-full text-left text-xs border border-slate-300 border-collapse">
                 <thead>
-                  <tr className="bg-slate-100/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-300">
-                    <th className="py-3 px-4 w-12 text-center text-slate-400">#</th>
-                    <th className="py-3 px-4">Name</th>
-                    <th className="py-3 px-4 text-right">Opening</th>
-                    <th className="py-3 px-4 text-right text-indigo-600 dark:text-indigo-400">New</th>
-                    <th className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400">Solved</th>
-                    <th className="py-3 px-4 text-right text-rose-600 dark:text-rose-400">Closing</th>
+                  <tr className="bg-[#666666] text-white font-bold text-center">
+                    <th className="py-2 px-3 border border-slate-400 text-left">Name</th>
+                    <th className="py-2 px-3 border border-slate-400">Opening</th>
+                    <th className="py-2 px-3 border border-slate-400">New</th>
+                    <th className="py-2 px-3 border border-slate-400">Solved</th>
+                    <th className="py-2 px-3 border border-slate-400">Closing</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                  {filteredRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
-                        No tasks found matching &quot;{searchQuery}&quot;
+                <tbody>
+                  {filteredRows.map((row, idx) => (
+                    <tr key={`ss-${row.name}-${idx}`} className="text-center">
+                      <td className="py-1.5 px-3 border border-slate-300 text-left font-semibold text-slate-900">
+                        {row.name}
+                      </td>
+                      <td className="py-1.5 px-3 border border-slate-300 font-mono text-slate-700">
+                        {row.opening > 0 ? row.opening : ''}
+                      </td>
+                      <td className="py-1.5 px-3 border border-slate-300 font-mono font-bold text-slate-900">
+                        {row.newCount > 0 ? row.newCount : ''}
+                      </td>
+                      <td className="py-1.5 px-3 border border-slate-300 font-mono font-bold text-slate-900">
+                        {row.solvedCount > 0 ? row.solvedCount : ''}
+                      </td>
+                      <td className="py-1.5 px-3 border border-slate-300 font-mono font-bold text-slate-900">
+                        {row.closing}
                       </td>
                     </tr>
-                  ) : (
-                    filteredRows.map((row, idx) => (
-                      <tr
-                        key={`${row.name}-${idx}`}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      >
-                        <td className="py-2.5 px-4 text-center text-slate-400 font-mono">
-                          {idx + 1}
-                        </td>
-                        <td className="py-2.5 px-4 text-slate-900 dark:text-slate-100 font-semibold max-w-md break-words">
-                          {row.name}
-                        </td>
-                        <td className="py-2.5 px-4 text-right text-slate-600 dark:text-slate-400 font-mono">
-                          {row.opening > 0 ? row.opening : ''}
-                        </td>
-                        <td className="py-2.5 px-4 text-right text-indigo-600 dark:text-indigo-400 font-mono font-bold">
-                          {row.newCount > 0 ? row.newCount : ''}
-                        </td>
-                        <td className="py-2.5 px-4 text-right text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                          {row.solvedCount > 0 ? row.solvedCount : ''}
-                        </td>
-                        <td className="py-2.5 px-4 text-right font-mono font-black text-rose-600 dark:text-rose-400 bg-rose-50/20 dark:bg-rose-950/20">
-                          {row.closing}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-slate-100 dark:bg-slate-800/90 border-t-2 border-slate-300 dark:border-slate-700 font-black text-xs text-slate-900 dark:text-white">
-                    <td className="py-3 px-4 text-center">∑</td>
-                    <td className="py-3 px-4 uppercase tracking-wider">Total</td>
-                    <td className="py-3 px-4 text-right font-mono">{summary.totalOpening}</td>
-                    <td className="py-3 px-4 text-right font-mono text-indigo-600 dark:text-indigo-400">
-                      {summary.newToday}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400">
-                      {summary.solvedToday}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-rose-600 dark:text-rose-400">
-                      {summary.totalPending}
-                    </td>
+                  ))}
+                  <tr className="bg-[#666666] text-white font-bold text-center">
+                    <td className="py-2 px-3 border border-slate-400 text-center font-bold">Total</td>
+                    <td className="py-2 px-3 border border-slate-400 font-mono font-bold">{summary.totalOpening}</td>
+                    <td className="py-2 px-3 border border-slate-400 font-mono font-bold">{summary.newToday}</td>
+                    <td className="py-2 px-3 border border-slate-400 font-mono font-bold">{summary.solvedToday}</td>
+                    <td className="py-2 px-3 border border-slate-400 font-mono font-bold">{summary.totalPending}</td>
                   </tr>
-                </tfoot>
+                </tbody>
               </table>
             </div>
           </div>
 
-          {/* Section 4: Today's Text Message & 1-Click Copy */}
+          {/* Section 4: Today's Text Message & 1-Click Copy & WhatsApp Share */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Copy className="w-5 h-5 text-indigo-500" />
@@ -1021,24 +1210,45 @@ export default function DailyTaskReportPage() {
                 </p>
               </div>
 
-              <Button
-                onClick={handleCopyMessage}
-                className="gap-2 font-bold shadow-sm"
-                variant={hasCopied ? 'secondary' : 'default'}
-                size="sm"
-              >
-                {hasCopied ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-500" />
-                    <span>Report copied successfully</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copy Report</span>
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleShareToWhatsApp}
+                  disabled={isSharingWhatsApp}
+                  className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20"
+                  size="sm"
+                >
+                  {isSharingWhatsApp ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Sharing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4 fill-current" />
+                      <span>Send to WhatsApp</span>
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleCopyMessage}
+                  className="gap-2 font-bold shadow-sm"
+                  variant={hasCopied ? 'secondary' : 'default'}
+                  size="sm"
+                >
+                  {hasCopied ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-500" />
+                      <span>Report copied successfully</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Report</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Formatted Text Box */}
