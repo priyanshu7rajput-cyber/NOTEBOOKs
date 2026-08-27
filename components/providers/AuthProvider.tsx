@@ -117,12 +117,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    if (!isDemoMode) {
-      await supabase.auth.signOut();
+    try {
+      if (!isDemoMode) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error('Sign out error:', err);
+    } finally {
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      // Hard redirect to login to clear any server/client state
+      window.location.href = '/login';
     }
-    setUser(null);
-    setSession(null);
-    setProfile(null);
   };
 
   const refreshProfile = async () => {
