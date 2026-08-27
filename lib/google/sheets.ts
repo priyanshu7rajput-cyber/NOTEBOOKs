@@ -45,8 +45,11 @@ export function getServiceAccountSheetsClient() {
     return null;
   }
 
-  // Replace escaped newlines if passed in .env
-  privateKey = privateKey.replace(/\\n/g, '\n');
+  // Handle various formats of private key in environment variables (quotes, escaped newlines, raw newlines)
+  privateKey = privateKey
+    .replace(/^["']|["']$/g, '') // remove surrounding quotes if any
+    .replace(/\\n/g, '\n')       // convert literal \n to real newlines
+    .replace(/\r\n/g, '\n');
 
   const auth = new google.auth.JWT({
     email: clientEmail,
