@@ -49,6 +49,9 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/books') ||
     request.nextUrl.pathname.startsWith('/tasks') ||
+    request.nextUrl.pathname.startsWith('/jira-dashboard') ||
+    request.nextUrl.pathname.startsWith('/daily-report') ||
+    request.nextUrl.pathname.startsWith('/google-sheets') ||
     request.nextUrl.pathname.startsWith('/favorites') ||
     request.nextUrl.pathname.startsWith('/trash') ||
     request.nextUrl.pathname.startsWith('/settings');

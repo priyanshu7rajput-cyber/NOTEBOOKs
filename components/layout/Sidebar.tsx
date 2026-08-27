@@ -14,6 +14,7 @@ import {
   BookMarked,
   FileSpreadsheet,
   Table2,
+  SquareKanban,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -40,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewBookClick }) => {
         { name: 'Overdue', href: '/tasks?filter=overdue' },
       ],
     },
+    { name: 'Jira Dashboard', href: '/jira-dashboard', icon: SquareKanban },
     { name: 'Daily Task Report', href: '/daily-report', icon: FileSpreadsheet },
     { name: 'Google Sheets', href: '/google-sheets', icon: Table2 },
     { name: 'Favorites', href: '/favorites', icon: Star },

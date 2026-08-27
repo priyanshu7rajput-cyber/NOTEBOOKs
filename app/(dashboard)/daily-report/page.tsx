@@ -21,12 +21,14 @@ import {
   Link2,
   Send,
   CloudUpload,
+  SquareKanban,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
   parsePreviousDayExcel,
   parsePreviousDayFromGoogleSheet,
   parseTaskNamesFromExcel,
+  convertJiraTasksToReportFormat,
   calculateDailyTaskReport,
   exportDailyReportToExcel,
   generateDailyReportMessage,
@@ -48,6 +50,12 @@ export default function DailyTaskReportPage() {
   const [newTasksFile, setNewTasksFile] = useState<File | null>(null);
   const [solvedTasksFile, setSolvedTasksFile] = useState<File | null>(null);
 
+  // New Tasks Source Mode: 'upload' | 'jira'
+  const [newTasksSourceMode, setNewTasksSourceMode] = useState<'upload' | 'jira'>('upload');
+  // Solved Tasks Source Mode: 'upload' | 'jira'
+  const [solvedTasksSourceMode, setSolvedTasksSourceMode] = useState<'upload' | 'jira'>('upload');
+  const [jiraDataCache, setJiraDataCache] = useState<any>(null);
+
   // Manual inputs
   const [verifiedCount, setVerifiedCount] = useState<number>(0);
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -57,6 +65,7 @@ export default function DailyTaskReportPage() {
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSavingToSheet, setIsSavingToSheet] = useState(false);
+  const [isFetchingJira, setIsFetchingJira] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -134,14 +143,28 @@ export default function DailyTaskReportPage() {
 
     const hasPrevious = previousSourceMode === 'upload' ? Boolean(previousFile) : Boolean(connectedSpreadsheetId || spreadsheetUrl);
 
-    if (!hasPrevious && !newTasksFile && !solvedTasksFile) {
-      setErrorMessage('Please provide previous data (Excel or Google Sheet) or today\'s Task files.');
+    if (!hasPrevious && !newTasksFile && !solvedTasksFile && newTasksSourceMode !== 'jira' && solvedTasksSourceMode !== 'jira') {
+      setErrorMessage('Please provide previous data (Excel or Google Sheet) or today\'s Task files / Jira source.');
       return;
     }
 
     setIsProcessing(true);
 
     try {
+      // Fetch Jira Data if either mode uses Jira
+      let currentJiraData = jiraDataCache;
+      if ((newTasksSourceMode === 'jira' || solvedTasksSourceMode === 'jira') && !currentJiraData) {
+        setIsFetchingJira(true);
+        const jiraRes = await fetch('/api/jira/dashboard');
+        const jData = await jiraRes.json();
+        if (!jiraRes.ok || jData.error) {
+          throw new Error(`[Jira Cloud Error] ${jData.error || 'Failed to fetch Jira today tasks'}`);
+        }
+        currentJiraData = jData;
+        setJiraDataCache(jData);
+        setIsFetchingJira(false);
+      }
+
       // 1. Parse Previous Day Data
       let prevData = new Map<string, { displayName: string; closing: number }>();
       
@@ -179,9 +202,12 @@ export default function DailyTaskReportPage() {
         }
       }
 
-      // 2. Parse New Tasks Excel (if provided)
+      // 2. Parse New Tasks (Excel or Live Jira)
       let newResult = { names: [] as string[], normalizedCounts: new Map<string, { displayName: string; count: number }>(), developerCounts: new Map<string, { displayName: string; count: number }>() };
-      if (newTasksFile) {
+      if (newTasksSourceMode === 'jira') {
+        const jiraNewIssues = currentJiraData?.newTasks || [];
+        newResult = convertJiraTasksToReportFormat(jiraNewIssues);
+      } else if (newTasksFile) {
         try {
           newResult = await parseTaskNamesFromExcel(newTasksFile, 'New Tasks');
         } catch (err: unknown) {
@@ -190,9 +216,12 @@ export default function DailyTaskReportPage() {
         }
       }
 
-      // 3. Parse Solved Tasks Excel (if provided)
+      // 3. Parse Solved Tasks (Excel or Live Jira)
       let solvedResult = { names: [] as string[], normalizedCounts: new Map<string, { displayName: string; count: number }>(), developerCounts: new Map<string, { displayName: string; count: number }>() };
-      if (solvedTasksFile) {
+      if (solvedTasksSourceMode === 'jira') {
+        const jiraSolvedIssues = currentJiraData?.completedTasks || [];
+        solvedResult = convertJiraTasksToReportFormat(jiraSolvedIssues);
+      } else if (solvedTasksFile) {
         try {
           solvedResult = await parseTaskNamesFromExcel(solvedTasksFile, 'Solved Tasks');
         } catch (err: unknown) {
@@ -215,6 +244,7 @@ export default function DailyTaskReportPage() {
       setErrorMessage(msg);
     } finally {
       setIsProcessing(false);
+      setIsFetchingJira(false);
     }
   };
 
@@ -549,94 +579,192 @@ export default function DailyTaskReportPage() {
             </div>
           </div>
 
-          {/* Card 2: New Tasks Excel */}
+          {/* Card 2: New Tasks */}
           <div
             className={`border-2 border-dashed rounded-2xl p-5 transition-all flex flex-col justify-between ${
-              newTasksFile
+              newTasksSourceMode === 'jira'
+                ? 'border-indigo-500/60 bg-indigo-50/20 dark:bg-indigo-950/20'
+                : newTasksFile
                 ? 'border-indigo-500/60 bg-indigo-50/20 dark:bg-indigo-950/20'
                 : 'border-slate-200 dark:border-slate-800 hover:border-violet-400 bg-slate-50/50 dark:bg-slate-800/30'
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  New Tasks Excel
-                </span>
-                {newTasksFile && <CheckCircle2 className="w-4 h-4 text-indigo-500" />}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    New Tasks
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium">
+                    Optional
+                  </span>
+                </div>
+                {(newTasksSourceMode === 'jira' || newTasksFile) && <CheckCircle2 className="w-4 h-4 text-indigo-500" />}
               </div>
+
+              {/* Source Switcher */}
+              <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setNewTasksSourceMode('upload')}
+                  className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                    newTasksSourceMode === 'upload'
+                      ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Upload Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewTasksSourceMode('jira')}
+                  className={`flex-1 py-1 text-[11px] font-semibold rounded-lg flex items-center justify-center gap-1 transition-all ${
+                    newTasksSourceMode === 'jira'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <SquareKanban className="w-3 h-3 text-indigo-500" />
+                  <span>Jira Cloud</span>
+                </button>
+              </div>
+
               <p className="text-[11px] text-slate-400 mb-4">
-                Extracts <strong>Task Name</strong> only (adds to <strong>New</strong>)
+                {newTasksSourceMode === 'jira'
+                  ? 'Fetches today\'s newly created Jira issues automatically via API.'
+                  : 'Upload an Excel or CSV file. Extracts Task Name or Developer.'}
               </p>
             </div>
 
             <div>
-              <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer transition-all shadow-2xs">
-                <FileText className="w-4 h-4 text-indigo-500" />
-                <span className="truncate max-w-[170px]">
-                  {newTasksFile ? newTasksFile.name : 'Upload New Excel'}
-                </span>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setNewTasksFile(e.target.files[0]);
-                  }}
-                  className="hidden"
-                />
-              </label>
-              {newTasksFile && (
-                <button
-                  onClick={() => setNewTasksFile(null)}
-                  className="text-[10px] text-rose-500 hover:underline mt-1.5 block mx-auto text-center"
-                >
-                  Remove file
-                </button>
+              {newTasksSourceMode === 'jira' ? (
+                <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                    <span>Live Jira Cloud Sync</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Auto-pulls created &gt;= startOfDay()</p>
+                </div>
+              ) : (
+                <div>
+                  <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer transition-all shadow-2xs">
+                    <FileText className="w-4 h-4 text-indigo-500" />
+                    <span className="truncate max-w-[170px]">
+                      {newTasksFile ? newTasksFile.name : 'Upload New (Optional)'}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls, .csv"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setNewTasksFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {newTasksFile && (
+                    <button
+                      onClick={() => setNewTasksFile(null)}
+                      className="text-[10px] text-rose-500 hover:underline mt-1.5 block mx-auto text-center"
+                    >
+                      Remove file
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Card 3: Solved Tasks Excel */}
+          {/* Card 3: Solved Tasks */}
           <div
             className={`border-2 border-dashed rounded-2xl p-5 transition-all flex flex-col justify-between ${
-              solvedTasksFile
+              solvedTasksSourceMode === 'jira'
+                ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20'
+                : solvedTasksFile
                 ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20'
                 : 'border-slate-200 dark:border-slate-800 hover:border-violet-400 bg-slate-50/50 dark:bg-slate-800/30'
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Solved Tasks Excel
-                </span>
-                {solvedTasksFile && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Solved Tasks
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium">
+                    Optional
+                  </span>
+                </div>
+                {(solvedTasksSourceMode === 'jira' || solvedTasksFile) && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
               </div>
+
+              {/* Source Switcher */}
+              <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setSolvedTasksSourceMode('upload')}
+                  className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                    solvedTasksSourceMode === 'upload'
+                      ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Upload Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSolvedTasksSourceMode('jira')}
+                  className={`flex-1 py-1 text-[11px] font-semibold rounded-lg flex items-center justify-center gap-1 transition-all ${
+                    solvedTasksSourceMode === 'jira'
+                      ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <SquareKanban className="w-3 h-3 text-emerald-500" />
+                  <span>Jira Cloud</span>
+                </button>
+              </div>
+
               <p className="text-[11px] text-slate-400 mb-4">
-                Extracts <strong>Task Name</strong> only (subtracts as <strong>Solved</strong>)
+                {solvedTasksSourceMode === 'jira'
+                  ? 'Fetches today\'s resolved/completed Jira issues automatically via API.'
+                  : 'Upload an Excel or CSV file. Extracts Task Name or Developer.'}
               </p>
             </div>
 
             <div>
-              <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer transition-all shadow-2xs">
-                <FileText className="w-4 h-4 text-emerald-500" />
-                <span className="truncate max-w-[170px]">
-                  {solvedTasksFile ? solvedTasksFile.name : 'Upload Solved Excel'}
-                </span>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setSolvedTasksFile(e.target.files[0]);
-                  }}
-                  className="hidden"
-                />
-              </label>
-              {solvedTasksFile && (
-                <button
-                  onClick={() => setSolvedTasksFile(null)}
-                  className="text-[10px] text-rose-500 hover:underline mt-1.5 block mx-auto text-center"
-                >
-                  Remove file
-                </button>
+              {solvedTasksSourceMode === 'jira' ? (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Live Jira Cloud Sync</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Auto-pulls resolved today (Done)</p>
+                </div>
+              ) : (
+                <div>
+                  <label className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer transition-all shadow-2xs">
+                    <FileText className="w-4 h-4 text-emerald-500" />
+                    <span className="truncate max-w-[170px]">
+                      {solvedTasksFile ? solvedTasksFile.name : 'Upload Solved (Optional)'}
+                    </span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls, .csv"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setSolvedTasksFile(e.target.files[0]);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {solvedTasksFile && (
+                    <button
+                      onClick={() => setSolvedTasksFile(null)}
+                      className="text-[10px] text-rose-500 hover:underline mt-1.5 block mx-auto text-center"
+                    >
+                      Remove file
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -660,7 +788,11 @@ export default function DailyTaskReportPage() {
 
           <Button
             onClick={handleProcessReport}
-            disabled={isProcessing || (!previousFile && !newTasksFile && !solvedTasksFile)}
+            disabled={
+              isProcessing ||
+              (previousSourceMode === 'upload' && !previousFile && !newTasksFile && !solvedTasksFile && newTasksSourceMode !== 'jira' && solvedTasksSourceMode !== 'jira') ||
+              (previousSourceMode === 'spreadsheet' && !connectedSpreadsheetId && !spreadsheetUrl && !newTasksFile && !solvedTasksFile && newTasksSourceMode !== 'jira' && solvedTasksSourceMode !== 'jira')
+            }
             className="w-full sm:w-auto px-8 gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-indigo-500/25 font-bold"
             size="lg"
           >

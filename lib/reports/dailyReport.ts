@@ -374,6 +374,52 @@ export async function parseTaskNamesFromExcel(
 }
 
 /**
+ * Converts Jira Issues directly into parsed Task Names & Developer Counts for Daily Report
+ */
+export function convertJiraTasksToReportFormat(jiraIssues: Array<{ summary: string; assignee?: { displayName: string } | null }>): {
+  names: string[];
+  normalizedCounts: Map<string, { displayName: string; count: number }>;
+  developerCounts: Map<string, { displayName: string; count: number }>;
+} {
+  const names: string[] = [];
+  const normalizedCounts = new Map<string, { displayName: string; count: number }>();
+  const developerCounts = new Map<string, { displayName: string; count: number }>();
+
+  for (const issue of jiraIssues) {
+    // 1. Task Name / Summary
+    const rawName = String(issue.summary || '').trim();
+    if (rawName) {
+      const norm = normalizeTaskName(rawName);
+      if (norm) {
+        names.push(rawName);
+        const existing = normalizedCounts.get(norm);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          normalizedCounts.set(norm, { displayName: rawName, count: 1 });
+        }
+      }
+    }
+
+    // 2. Developer / Assignee
+    const rawDev = String(issue.assignee?.displayName || '').trim();
+    if (rawDev) {
+      const normDev = normalizeTaskName(rawDev);
+      if (normDev) {
+        const existingDev = developerCounts.get(normDev);
+        if (existingDev) {
+          existingDev.count += 1;
+        } else {
+          developerCounts.set(normDev, { displayName: rawDev, count: 1 });
+        }
+      }
+    }
+  }
+
+  return { names, normalizedCounts, developerCounts };
+}
+
+/**
  * Helper to check if two names fuzzy match (e.g. 'Meet' matches 'Meet Patel', 'Dhara' matches 'Dhara S', or vice-versa)
  */
 function isNameFuzzyMatch(nameA: string, nameB: string): boolean {
