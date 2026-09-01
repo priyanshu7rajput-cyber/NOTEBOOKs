@@ -168,17 +168,50 @@ function mapRawJiraIssue(raw: any, baseUrl: string): JiraIssue {
 }
 
 /**
+ * Executes a simple test ping against Jira /rest/api/3/myself or serverInfo
+ */
+export async function testJiraConnection(config: JiraConfig): Promise<{ success: boolean; user?: string; error?: string }> {
+  try {
+    const authHeader = `Basic ${Buffer.from(`${config.email}:${config.apiToken}`).toString('base64')}`;
+    const res = await fetch(`${config.baseUrl}/rest/api/3/myself`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        return { success: false, error: 'Authentication failed. Please verify your Email and API Token.' };
+      }
+      if (res.status === 404) {
+        return { success: false, error: `Jira instance not found at URL (${config.baseUrl}).` };
+      }
+      const errText = await res.text();
+      return { success: false, error: `Jira error (${res.status}): ${errText.slice(0, 150)}` };
+    }
+
+    const userData = await res.json();
+    return {
+      success: true,
+      user: userData.displayName || userData.emailAddress || 'Authenticated User',
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Connection failed' };
+  }
+}
+
+/**
  * Fetches all Jira Today Dashboard data in parallel
  */
-export async function fetchJiraDashboardData(forceRefresh: boolean = false): Promise<JiraDashboardResponse> {
-  const now = Date.now();
-  if (!forceRefresh && cachedResponse && now - cachedResponse.timestamp < CACHE_TTL_MS) {
-    return cachedResponse.data;
-  }
-
-  const config = getJiraConfig();
+export async function fetchJiraDashboardData(
+  forceRefresh: boolean = false,
+  userConfig?: JiraConfig | null
+): Promise<JiraDashboardResponse> {
+  const config = userConfig || getJiraConfig();
   if (!config) {
-    throw new Error('Jira credentials not configured. Please set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN in environment variables.');
+    throw new Error('Jira credentials not configured. Please add your Jira Domain, Email, and API Token in Settings.');
   }
 
   // Exact JQL queries according to requirements:
@@ -304,11 +337,6 @@ export async function fetchJiraDashboardData(forceRefresh: boolean = false): Pro
       projects,
       issueTypes,
     },
-  };
-
-  cachedResponse = {
-    data: responsePayload,
-    timestamp: now,
   };
 
   return responsePayload;

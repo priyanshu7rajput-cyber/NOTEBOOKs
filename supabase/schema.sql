@@ -126,6 +126,18 @@ CREATE TABLE IF NOT EXISTS public.user_state (
 );
 
 -- ==============================================================================
+-- 7.1 USER_JIRA_CONFIGS TABLE (User-specific Jira API credentials)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.user_jira_configs (
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    jira_base_url TEXT NOT NULL,
+    jira_email TEXT NOT NULL,
+    jira_api_token TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================================================
 -- 8. INDEXES FOR HIGH-PERFORMANCE QUERIES
 -- ==============================================================================
 CREATE INDEX IF NOT EXISTS idx_books_user_id ON public.books(user_id);
@@ -147,6 +159,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_user_priority ON public.tasks(user_id, prio
 CREATE INDEX IF NOT EXISTS idx_tags_user_id ON public.tags(user_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_user_id ON public.attachments(user_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_page_id ON public.attachments(page_id);
+CREATE INDEX IF NOT EXISTS idx_user_jira_configs_user_id ON public.user_jira_configs(user_id);
 
 -- ==============================================================================
 -- 9. AUTOMATIC TRIGGER FOR PROFILES & UPDATED_AT
@@ -195,6 +208,9 @@ CREATE TRIGGER set_pages_updated_at BEFORE UPDATE ON public.pages FOR EACH ROW E
 DROP TRIGGER IF EXISTS set_tasks_updated_at ON public.tasks;
 CREATE TRIGGER set_tasks_updated_at BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_user_jira_configs_updated_at ON public.user_jira_configs;
+CREATE TRIGGER set_user_jira_configs_updated_at BEFORE UPDATE ON public.user_jira_configs FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
 -- ==============================================================================
 -- 10. ROW LEVEL SECURITY (RLS) POLICIES (Idempotent with DROP POLICY IF EXISTS)
 -- ==============================================================================
@@ -206,6 +222,7 @@ ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.task_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_state ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_jira_configs ENABLE ROW LEVEL SECURITY;
 
 -- Profiles RLS
 DROP POLICY IF EXISTS "Users can select own profile" ON public.profiles;
@@ -295,3 +312,16 @@ CREATE POLICY "Users can view own state" ON public.user_state FOR SELECT USING (
 
 DROP POLICY IF EXISTS "Users can upsert own state" ON public.user_state;
 CREATE POLICY "Users can upsert own state" ON public.user_state FOR ALL USING (auth.uid() = user_id);
+
+-- User Jira Configs RLS
+DROP POLICY IF EXISTS "Users can view own jira config" ON public.user_jira_configs;
+CREATE POLICY "Users can view own jira config" ON public.user_jira_configs FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own jira config" ON public.user_jira_configs;
+CREATE POLICY "Users can insert own jira config" ON public.user_jira_configs FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own jira config" ON public.user_jira_configs;
+CREATE POLICY "Users can update own jira config" ON public.user_jira_configs FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own jira config" ON public.user_jira_configs;
+CREATE POLICY "Users can delete own jira config" ON public.user_jira_configs FOR DELETE USING (auth.uid() = user_id);

@@ -87,6 +87,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
+          if (typeof window !== 'undefined' && session.user.email) {
+            localStorage.setItem('last_auth_user_email', session.user.email);
+          }
           await fetchProfile(session.user.id);
         }
       } catch (err) {
@@ -100,8 +103,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(session);
           setUser(session?.user ?? null);
           if (session?.user) {
+            if (typeof window !== 'undefined' && session.user.email) {
+              localStorage.setItem('last_auth_user_email', session.user.email);
+            }
             await fetchProfile(session.user.id);
           } else {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('last_auth_user_email');
+            }
             setProfile(null);
           }
           setIsLoading(false);

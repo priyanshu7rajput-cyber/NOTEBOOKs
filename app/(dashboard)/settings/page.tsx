@@ -6,6 +6,7 @@ import { useTheme } from '@/components/providers/ThemeProvider';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { createClient } from '@/lib/supabase/client';
+import { JiraConfigSection } from '@/components/jira/JiraConfigSection';
 import {
   User,
   Moon,
@@ -112,6 +113,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* User-specific Jira Cloud Integration */}
+      <JiraConfigSection />
+
       {/* Data Management & Backup */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -123,7 +127,7 @@ export default function SettingsPage() {
 
         <div className="space-y-3">
           <p className="text-xs text-slate-500 leading-relaxed">
-            All your books, pages, tasks, and handwriting are isolated via PostgreSQL Row Level Security (RLS) policies. Only your authenticated user account can access or modify your records.
+            All your books, pages, tasks, Jira credentials, and handwriting are isolated via PostgreSQL Row Level Security (RLS) policies. Only your authenticated user account can access or modify your records.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">

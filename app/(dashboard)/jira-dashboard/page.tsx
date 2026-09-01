@@ -38,14 +38,20 @@ export default function JiraDashboardPage() {
   const [selectedProject, setSelectedProject] = useState('all');
   const [selectedIssueType, setSelectedIssueType] = useState('all');
 
-  // Load cached Jira data from localStorage on mount (so data persists across page navigations without extra API calls)
+  // Load cached Jira data from localStorage per user on mount
   useEffect(() => {
     try {
-      const savedJira = localStorage.getItem('cached_jira_dashboard_data');
+      // Find current user email / id from Supabase auth if available
+      const cachedEmail = localStorage.getItem('last_auth_user_email') || 'current';
+      const cacheKey = `cached_jira_${cachedEmail}`;
+      const savedJira = localStorage.getItem(cacheKey);
       if (savedJira) {
         const parsed = JSON.parse(savedJira);
         setDashboardData(parsed);
         setHasFetched(true);
+      } else {
+        setDashboardData(null);
+        setHasFetched(false);
       }
     } catch (e) {
       console.warn('Failed to read Jira cache from localStorage:', e);
@@ -73,9 +79,10 @@ export default function JiraDashboardPage() {
       setDashboardData(data);
       setHasFetched(true);
 
-      // Save to localStorage so navigation doesn't lose it or trigger re-fetch
+      // Save to localStorage with user-scoped key
       try {
-        localStorage.setItem('cached_jira_dashboard_data', JSON.stringify(data));
+        const cachedEmail = localStorage.getItem('last_auth_user_email') || 'current';
+        localStorage.setItem(`cached_jira_${cachedEmail}`, JSON.stringify(data));
       } catch (e) {
         console.warn('Failed to save Jira cache:', e);
       }
@@ -210,22 +217,26 @@ export default function JiraDashboardPage() {
 
       {/* Error / Not Configured State */}
       {errorMessage && (
-        <div className="p-5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-xs space-y-3">
+        <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs space-y-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
             <div className="flex-1 space-y-1">
-              <h4 className="font-bold text-sm">Unable to fetch Jira Data</h4>
-              <p className="leading-relaxed">{errorMessage}</p>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white">Jira Cloud Integration Required</h4>
+              <p className="leading-relaxed text-slate-600 dark:text-slate-300">{errorMessage}</p>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-rose-500/20 text-[11px] space-y-1">
-            <p className="font-semibold">Setup instructions in <code className="font-mono bg-white/20 px-1 py-0.5 rounded">.env.local</code>:</p>
-            <pre className="p-3 bg-slate-950 text-slate-200 rounded-xl font-mono text-[11px] overflow-x-auto">
-              {`JIRA_BASE_URL=https://your-domain.atlassian.net
-JIRA_EMAIL=your-email@example.com
-JIRA_API_TOKEN=your-atlassian-api-token`}
-            </pre>
+          <div className="pt-2 border-t border-amber-500/20 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[11px] text-slate-500">
+              Each user can securely link their personal Atlassian Jira domain and API token.
+            </p>
+            <a
+              href="/settings"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-xs"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              Configure Jira in Settings
+            </a>
           </div>
         </div>
       )}

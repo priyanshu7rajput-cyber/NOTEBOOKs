@@ -35,7 +35,10 @@ export default function SignupPage() {
 
       if (error) throw error;
       setSuccess(true);
-      setTimeout(() => router.push('/dashboard'), 1500);
+      // If email confirmation is not required, session is active; navigate to dashboard
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Failed to create account.');
     } finally {
@@ -96,7 +99,7 @@ export default function SignupPage() {
             <label className="block text-xs font-semibold text-slate-300">Full Name</label>
             <input
               type="text"
-              placeholder="Priyanshu / Scholar"
+              placeholder="e.g. Alex Smith"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
