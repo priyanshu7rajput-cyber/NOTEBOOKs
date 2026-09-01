@@ -2,6 +2,12 @@ export type Priority = 'high' | 'medium' | 'low';
 
 export type CoverTheme = 
   | 'classic'
+  | 'spiral_black'
+  | 'spiral_gold'
+  | 'kraft_paper'
+  | 'executive'
+  | 'pastel_mint'
+  | 'sunset_orange'
   | 'leather'
   | 'gradient'
   | 'grid'

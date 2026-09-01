@@ -26,7 +26,7 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   return (
     <div className="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between">
-      {/* Top Cover Visual (3D notebook aesthetic) */}
+      {/* Top Cover Visual (3D notebook aesthetic with realistic spiral rings) */}
       <Link href={`/books/${book.id}`} className="block relative overflow-hidden">
         <div
           className={cn(
@@ -34,13 +34,27 @@ export const BookCard: React.FC<BookCardProps> = ({
             theme.gradient
           )}
         >
-          {/* Notebook Left Spine Shadow / Stitch Line */}
-          <div className="absolute left-0 top-0 bottom-0 w-4 bg-black/25 border-r border-white/10" />
-          <div className="absolute left-6 top-0 bottom-0 w-px bg-white/10" />
+          {/* Spiral Ring Binding on the Left if theme is spiral */}
+          {book.cover_theme.includes('spiral') ? (
+            <div className="absolute left-1.5 top-0 bottom-0 w-6 flex flex-col justify-between py-2.5 z-20 pointer-events-none">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="flex items-center">
+                  <div className="w-4 h-2 rounded-full border-2 border-slate-700 bg-slate-900 shadow-sm shadow-black" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-800 -ml-1" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Notebook Left Spine Shadow / Stitch Line */}
+              <div className="absolute left-0 top-0 bottom-0 w-4 bg-black/25 border-r border-white/10" />
+              <div className="absolute left-6 top-0 bottom-0 w-px bg-white/10" />
+            </>
+          )}
 
           {/* Top category badge & Favorite Star */}
-          <div className="flex items-center justify-between z-10 pl-3">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/30 backdrop-blur-xs text-white/90 border border-white/15">
+          <div className="flex items-center justify-between z-10 pl-5">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/40 backdrop-blur-xs text-white/90 border border-white/15">
               {book.category || 'Notebook'}
             </span>
 
@@ -66,20 +80,41 @@ export const BookCard: React.FC<BookCardProps> = ({
             )}
           </div>
 
-          {/* Book Title on Cover */}
-          <div className="z-10 pl-3">
-            <h3
-              className={cn(
-                'text-lg font-bold line-clamp-2 leading-snug drop-shadow-md',
-                theme.text
-              )}
-            >
-              {book.title}
-            </h3>
-            {book.purpose && (
-              <p className="text-xs text-white/75 mt-0.5 line-clamp-1">
-                {book.purpose}
-              </p>
+          {/* Book Title on Cover with Gold Frame for Spiral Black */}
+          <div className="z-10 pl-5">
+            {book.cover_theme === 'spiral_black' ? (
+              <div className="border border-yellow-500/70 p-2.5 rounded-sm bg-black/20 backdrop-blur-2xs mb-1">
+                <h3
+                  className={cn(
+                    'text-base font-bold line-clamp-2 leading-snug tracking-wide text-amber-100',
+                    theme.text
+                  )}
+                >
+                  {book.title}
+                </h3>
+                <div className="w-full h-px bg-yellow-500/40 my-1" />
+                {book.purpose && (
+                  <p className="text-[11px] text-amber-200/80 line-clamp-1">
+                    {book.purpose}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <h3
+                  className={cn(
+                    'text-lg font-bold line-clamp-2 leading-snug drop-shadow-md',
+                    theme.text
+                  )}
+                >
+                  {book.title}
+                </h3>
+                {book.purpose && (
+                  <p className="text-xs text-white/75 mt-0.5 line-clamp-1">
+                    {book.purpose}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
