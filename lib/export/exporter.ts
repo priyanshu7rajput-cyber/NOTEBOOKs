@@ -53,37 +53,109 @@ export function exportTasksToJSON(tasks: Task[], filename = 'tasks-backup.json')
   downloadAnchor.remove();
 }
 
-export function exportTasksToPDF(tasks: Task[], title = 'Task Report', filename = 'tasks-report.pdf') {
-  const doc = new jsPDF();
-  
-  // Header
-  doc.setFontSize(18);
-  doc.setTextColor(30, 41, 59);
-  doc.text(title, 14, 20);
+export function exportTasksToPDF(tasks: Task[], title = 'Pending Tasks Report', filename = 'pending-tasks-report.pdf') {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
 
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Generated on ${new Date().toLocaleDateString()} • Total Tasks: ${tasks.length}`, 14, 28);
-  doc.line(14, 32, 196, 32);
+  const pageWidth = doc.internal.pageSize.getWidth(); // 210mm
+  const pageHeight = doc.internal.pageSize.getHeight(); // 297mm
+  const margin = 16;
+  const contentWidth = pageWidth - margin * 2;
 
-  let y = 42;
+  // Header Banner Background (Deep Indigo Gradient/Solid Luxury Header)
+  doc.setFillColor(15, 23, 42); // slate-900
+  doc.roundedRect(margin, 14, contentWidth, 34, 4, 4, 'F');
+
+  // Top Accent Bar (Gradient Indigo / Violet simulation)
+  doc.setFillColor(79, 70, 229); // indigo-600
+  doc.rect(margin + 4, 18, 4, 26, 'F');
+
+  // Header Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255);
+  doc.text(title, margin + 12, 27);
+
+  // Subtitle / Metadata
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(148, 163, 184); // slate-400
+  const dateStr = new Date().toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  doc.text(`Generated on ${dateStr} • Digital Notebook Task Management`, margin + 12, 36);
+  doc.text(`Total Tasks: ${tasks.length}`, margin + 12, 42);
+
+  // Status Badge in Top Right of Header
+  const pendingCount = tasks.filter((t) => !t.completed).length;
+  doc.setFillColor(239, 68, 68, 0.2); // rose tint
+  doc.roundedRect(pageWidth - margin - 38, 22, 32, 18, 3, 3, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(248, 113, 113); // rose-400
+  doc.text(`${pendingCount}`, pageWidth - margin - 22, 31, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(203, 213, 225);
+  doc.text('PENDING', pageWidth - margin - 22, 36, { align: 'center' });
+
+  // Starting position for task cards
+  let y = 56;
+  let pageNum = 1;
+
+  // Add Page Number Footer helper
+  const drawFooter = () => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+    doc.text('Confidential • Digital Notebook Workspace', margin, pageHeight - 7);
+    doc.text(`Page ${pageNum}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+  };
+
+  drawFooter();
+
   tasks.forEach((t, i) => {
-    if (y > 270) {
+    // Check if we need a new page (Card height ~14mm)
+    if (y + 18 > pageHeight - 18) {
       doc.addPage();
-      y = 20;
+      pageNum += 1;
+      drawFooter();
+      y = 18;
     }
 
+    const isDone = Boolean(t.completed);
+
+    // Card Box (Minimalist Clean Design)
+    doc.setFillColor(isDone ? 248 : 255, isDone ? 250 : 255, isDone ? 252 : 255);
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentWidth, 14, 2, 2, 'FD');
+
+    // Custom Checkbox Square
+    doc.setDrawColor(isDone ? 34 : 148, isDone ? 197 : 163, isDone ? 94 : 184);
+    doc.setFillColor(isDone ? 220 : 255, isDone ? 252 : 255, isDone ? 231 : 255);
+    doc.roundedRect(margin + 5, y + 4, 6, 6, 1.2, 1.2, isDone ? 'FD' : 'D');
+    if (isDone) {
+      doc.setTextColor(22, 101, 52);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('✓', margin + 6.3, y + 8.5);
+    }
+
+    // Task Title
+    doc.setFont('helvetica', isDone ? 'normal' : 'bold');
     doc.setFontSize(11);
-    doc.setTextColor(t.completed ? 148 : 30, t.completed ? 163 : 41, t.completed ? 184 : 59);
-    const statusIcon = t.completed ? '[x]' : '[ ]';
-    doc.text(`${statusIcon} ${t.title}`, 14, y);
+    doc.setTextColor(isDone ? 148 : 15, isDone ? 163 : 23, isDone ? 184 : 42); // slate-400 vs slate-900
 
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    const meta = `Priority: ${t.priority.toUpperCase()} | Due: ${t.due_date ? new Date(t.due_date).toLocaleDateString() : 'N/A'} | Book: ${t.book_title || 'N/A'}`;
-    doc.text(meta, 18, y + 5);
+    const cleanTitle = t.title.length > 75 ? t.title.substring(0, 72) + '...' : t.title;
+    doc.text(cleanTitle, margin + 16, y + 8.5);
 
-    y += 12;
+    y += 17;
   });
 
   doc.save(filename);
