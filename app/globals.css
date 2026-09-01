@@ -97,7 +97,7 @@ nextjs-portal, [data-nextjs-toast], [data-nextjs-indicator] {
 .tiptap-notebook-editor {
   line-height: var(--notebook-line-height) !important;
   color: #000000;
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   letter-spacing: 0.02em;
   direction: ltr !important;
   text-align: left !important;
@@ -108,10 +108,9 @@ nextjs-portal, [data-nextjs-toast], [data-nextjs-indicator] {
   line-height: var(--notebook-line-height) !important;
   height: var(--notebook-line-height) !important;
   min-height: var(--notebook-line-height) !important;
-  max-height: var(--notebook-line-height) !important;
   margin: 0 !important;
   padding: 0 !important;
-  padding-top: 10px !important; /* Pushes the baseline down directly onto the ruled line */
+  padding-top: 2px !important; /* Positions the text baseline directly onto the line */
   box-sizing: border-box !important;
   display: block;
   direction: ltr !important;
@@ -129,9 +128,10 @@ nextjs-portal, [data-nextjs-toast], [data-nextjs-indicator] {
 .tiptap-notebook-editor h3 {
   line-height: var(--notebook-line-height) !important;
   height: var(--notebook-line-height) !important;
+  min-height: var(--notebook-line-height) !important;
   margin: 0 !important;
   padding: 0 !important;
-  padding-top: 8px !important;
+  padding-top: 2px !important;
   box-sizing: border-box !important;
   direction: ltr !important;
   text-align: left !important;
@@ -148,15 +148,13 @@ ul[data-type="taskList"] {
 
 ul[data-type="taskList"] li {
   display: flex !important;
-  align-items: flex-end !important;
+  align-items: center !important;
   gap: 0.75rem !important;
   line-height: var(--notebook-line-height) !important;
   height: var(--notebook-line-height) !important;
   min-height: var(--notebook-line-height) !important;
-  max-height: var(--notebook-line-height) !important;
   margin: 0 !important;
   padding: 0 !important;
-  padding-bottom: 6px !important;
   box-sizing: border-box !important;
   direction: ltr !important;
   text-align: left !important;
@@ -165,9 +163,11 @@ ul[data-type="taskList"] li {
 ul[data-type="taskList"] li > div {
   margin: 0 !important;
   padding: 0 !important;
-  padding-top: 10px !important;
+  padding-top: 2px !important;
   box-sizing: border-box !important;
   display: block;
+  flex: 1;
+  height: var(--notebook-line-height) !important;
 }
 
 ul[data-type="taskList"] li > label {
@@ -176,7 +176,7 @@ ul[data-type="taskList"] li > label {
   justify-content: center !important;
   user-select: none !important;
   margin: 0 !important;
-  margin-bottom: 8px !important;
+  margin-top: 0 !important;
 }
 
 /* Custom Green Checkbox */

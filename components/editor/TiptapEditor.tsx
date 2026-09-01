@@ -63,26 +63,26 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
               }
             });
 
-            // Only flip to next page when page lines genuinely reach page full capacity
+            // Stop going beyond fixed page bottom - flip page instead
             if (actualLinesCount >= maxLinesPerPage) {
               if (onPageLimitReachedRef.current) {
                 onPageLimitReachedRef.current();
-                return true;
               }
+              return true; // Stop inserting extra line on this fixed page
             }
 
-            // Normal typing inside a taskItem: continue checkbox
+            // Normal typing inside a taskItem: continue checkbox on next ruled line
             if (editor.isActive('taskItem')) {
               return editor.commands.splitListItem('taskItem');
             }
 
             // If checklist toggle is active, create checkbox on new line
             if (isChecklistModeRef.current) {
-              editor.chain().splitBlock().toggleTaskList().run();
-              return true;
+              return editor.chain().splitBlock().toggleTaskList().run();
             }
 
-            return false; // Default normal enter behavior
+            // Default normal Enter key behavior: split block and insert new paragraph
+            return editor.commands.splitBlock();
           },
         };
       },
