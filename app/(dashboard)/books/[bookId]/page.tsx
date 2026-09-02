@@ -81,7 +81,7 @@ export default function BookEditorPage({ params }: BookEditorPageProps) {
                   content: [
                     {
                       type: 'text',
-                      text: 'Hello, I am Raj Chourasiya. Welcome',
+                      text: 'A B C D E F  G H I J K L M N O P Q R S T U V W X Y Z',
                     },
                   ],
                 },
@@ -90,32 +90,26 @@ export default function BookEditorPage({ params }: BookEditorPageProps) {
                   content: [
                     {
                       type: 'text',
-                      text: 'To Our Website Text To Handwriting',
+                      text: 'a b c d e f g h i j k l m n o p q r s t u v w x y z',
                     },
                   ],
                 },
                 {
-                  type: 'taskList',
+                  type: 'paragraph',
                   content: [
                     {
-                      type: 'taskItem',
-                      attrs: { checked: true },
-                      content: [
-                        {
-                          type: 'paragraph',
-                          content: [{ type: 'text', text: 'Complete Chapter 1 notes' }],
-                        },
-                      ],
+                      type: 'text',
+                      marks: [{ type: 'textStyle', attrs: { color: '#dc2626' } }],
+                      text: '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
                     },
+                  ],
+                },
+                {
+                  type: 'paragraph',
+                  content: [
                     {
-                      type: 'taskItem',
-                      attrs: { checked: false },
-                      content: [
-                        {
-                          type: 'paragraph',
-                          content: [{ type: 'text', text: 'Solve assignment questions' }],
-                        },
-                      ],
+                      type: 'text',
+                      text: 'hello i am priyanshu',
                     },
                   ],
                 },
@@ -505,6 +499,8 @@ export default function BookEditorPage({ params }: BookEditorPageProps) {
         onClose={() => setIsExportOpen(false)}
         tasks={tasks}
         currentBookId={bookId}
+        currentBook={book}
+        pages={pages}
       />
     </div>
   );

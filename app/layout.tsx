@@ -9,6 +9,9 @@ import {
   Indie_Flower,
   Patrick_Hand,
   Shadows_Into_Light,
+  Edu_NSW_ACT_Cursive,
+  Playwrite_IN,
+  Cedarville_Cursive,
 } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -73,6 +76,24 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const eduCursive = Edu_NSW_ACT_Cursive({
+  subsets: ["latin"],
+  variable: "--font-edu-cursive",
+  display: "swap",
+});
+
+const playwriteIN = Playwrite_IN({
+  variable: "--font-playwrite-in",
+  display: "swap",
+});
+
+const cedarville = Cedarville_Cursive({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-cedarville",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "MyNotebook - Realistic Digital Notebook",
   description: "Experience true handwriting on ruled notebook paper.",
@@ -85,8 +106,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Marck+Script&display=swap" rel="stylesheet" />
+      </head>
       <body
-        className={`${inter.variable} ${caveat.variable} ${kalam.variable} ${architectsDaughter.variable} ${indieFlower.variable} ${patrickHand.variable} ${shadowsIntoLight.variable} ${playfair.variable} ${jetbrainsMono.variable} font-sans antialiased bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen`}
+        className={`${inter.variable} ${eduCursive.variable} ${playwriteIN.variable} ${cedarville.variable} ${kalam.variable} ${caveat.variable} ${architectsDaughter.variable} ${indieFlower.variable} ${patrickHand.variable} ${shadowsIntoLight.variable} ${playfair.variable} ${jetbrainsMono.variable} font-sans antialiased bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen`}
       >
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>

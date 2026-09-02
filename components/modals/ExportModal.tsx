@@ -8,9 +8,10 @@ import {
   exportTasksToCSV,
   exportTasksToExcel,
   exportTasksToJSON,
+  exportNotebookToJSON,
   exportTasksToPDF,
 } from '@/lib/export/exporter';
-import { FileDown, FileSpreadsheet, FileText, Download } from 'lucide-react';
+import { FileDown, FileSpreadsheet, FileText, Download, BookOpen } from 'lucide-react';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ interface ExportModalProps {
   tasks: Task[];
   books?: Book[];
   currentBookId?: string;
+  currentBook?: Book | null;
+  pages?: any[];
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -26,10 +29,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   tasks,
   books = [],
   currentBookId,
+  currentBook,
+  pages = [],
 }) => {
   const [selectedBook, setSelectedBook] = useState<string>(currentBookId || 'all');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'completed' | 'all'>('pending');
-  const [format, setFormat] = useState<'pdf' | 'csv' | 'xlsx' | 'json'>('csv');
+  const [format, setFormat] = useState<'pdf' | 'csv' | 'xlsx' | 'json'>('json');
+  const [jsonScope, setJsonScope] = useState<'notebook' | 'tasks'>('notebook');
 
   const filteredTasks = tasks.filter((t) => {
     if (selectedBook !== 'all' && t.book_id !== selectedBook) return false;
@@ -39,13 +45,23 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   });
 
   const handleExport = () => {
-    const filename = `notebook-tasks-${statusFilter}-${new Date().toISOString().split('T')[0]}`;
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `notebook-tasks-${statusFilter}-${dateStr}`;
+
     if (format === 'csv') {
       exportTasksToCSV(filteredTasks, `${filename}.csv`);
     } else if (format === 'xlsx') {
       exportTasksToExcel(filteredTasks, `${filename}.xlsx`);
     } else if (format === 'json') {
-      exportTasksToJSON(filteredTasks, `${filename}.json`);
+      if (jsonScope === 'notebook') {
+        const bookMeta = currentBook || books.find((b) => b.id === selectedBook) || {
+          id: selectedBook,
+          title: 'Notebook',
+        };
+        exportNotebookToJSON(bookMeta, pages, filteredTasks, `${(bookMeta.title || 'notebook').toLowerCase().replace(/\s+/g, '-')}-backup-${dateStr}.json`);
+      } else {
+        exportTasksToJSON(filteredTasks, `${filename}.json`);
+      }
     } else if (format === 'pdf') {
       exportTasksToPDF(filteredTasks, `Task Export (${statusFilter.toUpperCase()})`, `${filename}.pdf`);
     }
@@ -138,9 +154,52 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
         </div>
 
+        {/* JSON Scope selector if format is json */}
+        {format === 'json' && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+              JSON Backup Scope
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setJsonScope('notebook')}
+                className={`py-2 px-3 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  jsonScope === 'notebook'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Full Notebook Backup</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setJsonScope('tasks')}
+                className={`py-2 px-3 text-xs font-semibold rounded-xl border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  jsonScope === 'tasks'
+                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Tasks Only</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Count Preview */}
         <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-xs text-slate-600 dark:text-slate-400">
-          Ready to export <span className="font-bold text-blue-600">{filteredTasks.length}</span> tasks as <span className="font-bold uppercase">{format}</span>.
+          {format === 'json' && jsonScope === 'notebook' ? (
+            <span>
+              Ready to download full JSON backup: <span className="font-bold text-blue-600">{pages.length || 1} pages</span>, notes content, and <span className="font-bold text-blue-600">{filteredTasks.length} tasks</span>.
+            </span>
+          ) : (
+            <span>
+              Ready to export <span className="font-bold text-blue-600">{filteredTasks.length}</span> tasks as <span className="font-bold uppercase">{format}</span>.
+            </span>
+          )}
         </div>
 
         {/* Action buttons */}
@@ -148,9 +207,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleExport} disabled={filteredTasks.length === 0} className="gap-1.5">
+          <Button
+            onClick={handleExport}
+            disabled={format === 'json' ? (jsonScope === 'tasks' && filteredTasks.length === 0) : filteredTasks.length === 0}
+            className="gap-1.5 font-bold"
+          >
             <Download className="w-4 h-4" />
-            Download Export
+            Download Export (JSON)
           </Button>
         </div>
       </div>

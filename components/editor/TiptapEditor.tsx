@@ -128,7 +128,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
         attributes: {
           class:
             'tiptap-notebook-editor focus:outline-none w-full text-slate-900',
-          style: `font-family: var(--font-kalam); color: #000000; min-height: ${maxLinesPerPage * 44}px;`,
+          style: `font-family: 'Cedarville Cursive', var(--font-cedarville), 'Marck Script', cursive; color: #1e3a8a; min-height: ${maxLinesPerPage * 44}px;`,
         },
       },
       onUpdate: ({ editor }) => {

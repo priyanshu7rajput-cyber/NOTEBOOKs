@@ -43,14 +43,35 @@ export function exportTasksToExcel(tasks: Task[], filename = 'tasks-export.xlsx'
   XLSX.writeFile(workbook, filename);
 }
 
-export function exportTasksToJSON(tasks: Task[], filename = 'tasks-backup.json') {
-  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(tasks, null, 2));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute('href', dataStr);
-  downloadAnchor.setAttribute('download', filename);
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
+export function downloadJSON(data: any, filename: string) {
+  const jsonString = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+export function exportTasksToJSON(tasks: any[], filename = 'tasks-backup.json') {
+  downloadJSON(tasks, filename);
+}
+
+export function exportNotebookToJSON(book: any, pages: any[], tasks: any[] = [], filename?: string) {
+  const exportPayload = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    appName: 'MyNotebook',
+    type: 'notebook_backup',
+    book,
+    pages,
+    tasks,
+  };
+  const name = filename || `${(book?.title || 'notebook').toLowerCase().replace(/\s+/g, '-')}-backup.json`;
+  downloadJSON(exportPayload, name);
 }
 
 export function exportTasksToPDF(tasks: Task[], title = 'Pending Tasks Report', filename = 'pending-tasks-report.pdf') {

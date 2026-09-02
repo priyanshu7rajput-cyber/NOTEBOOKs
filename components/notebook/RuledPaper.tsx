@@ -41,8 +41,8 @@ export const RuledPaper: React.FC<RuledPaperProps> = ({
               value={headerTitle}
               onChange={(e) => onHeaderTitleChange && onHeaderTitleChange(e.target.value)}
               placeholder="Enter Heading / Subject (e.g. Unit 1 Notes)..."
-              className="w-full text-xl sm:text-2xl font-bold bg-transparent border-none text-slate-900 focus:outline-none placeholder:text-slate-300 transition-all font-[var(--font-kalam)]"
-              style={{ fontFamily: 'var(--font-kalam)', fontWeight: 700 }}
+              className="w-full text-xl sm:text-2xl font-bold bg-transparent border-none text-slate-900 focus:outline-none placeholder:text-slate-300 transition-all"
+              style={{ fontFamily: "'Cedarville Cursive', var(--font-cedarville), 'Marck Script', cursive", fontWeight: 600 }}
             />
 
             {/* Optional Date Stamp on the Right */}

@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Handwriting1';
+  src: url('/fonts/handwriting-1.otf');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Hide Next.js Dev Indicator Floating Button */
@@ -93,11 +101,12 @@ nextjs-portal, [data-nextjs-toast], [data-nextjs-indicator] {
   border-right: 2px solid var(--notebook-margin-color);
 }
 
-/* Left-to-Right strict typography & Ruled Line Alignment with deep black default ink */
+/* Left-to-Right strict typography & Ruled Line Alignment with deep blue notebook ink */
 .tiptap-notebook-editor {
   line-height: var(--notebook-line-height) !important;
-  color: #000000;
-  font-size: 1.45rem;
+  font-family: 'Cedarville Cursive', var(--font-cedarville), 'Marck Script', cursive !important;
+  color: #1e3a8a;
+  font-size: 1.55rem;
   letter-spacing: 0.02em;
   direction: ltr !important;
   text-align: left !important;

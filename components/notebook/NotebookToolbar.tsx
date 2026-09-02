@@ -65,6 +65,11 @@ export const NotebookToolbar: React.FC<NotebookToolbarProps> = ({
   ];
 
   const handwritingFonts = [
+    { label: '✍️ True Cursive Handwriting (Image 1)', value: "'Cedarville Cursive', cursive" },
+    { label: '✍️ Marck Script Cursive', value: "'Marck Script', cursive" },
+    { label: '✍️ School Cursive', value: 'var(--font-edu-cursive)' },
+    { label: '✍️ handwriting-1 (Custom OTF)', value: 'Handwriting1' },
+    { label: '✍️ Playwrite India Cursive', value: 'var(--font-playwrite-in)' },
     { label: '✍️ Kalam (Cursive)', value: 'var(--font-kalam)' },
     { label: '✍️ Patrick Hand (Neat Script)', value: 'var(--font-patrick)' },
     { label: '✍️ Indie Flower (Soft Hand)', value: 'var(--font-indie)' },
@@ -145,7 +150,7 @@ export const NotebookToolbar: React.FC<NotebookToolbarProps> = ({
               <Type className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               <select
                 onChange={(e) => onApplyTextFont && onApplyTextFont(e.target.value)}
-                defaultValue="var(--font-kalam)"
+                defaultValue="'Cedarville Cursive', cursive"
                 className="text-xs bg-transparent text-slate-800 dark:text-slate-200 font-bold focus:outline-none cursor-pointer"
               >
                 {handwritingFonts.map((f) => (
